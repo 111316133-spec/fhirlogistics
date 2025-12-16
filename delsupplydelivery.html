@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <title>刪除 SupplyDelivery</title>
+</head>
+<body>
+  <h2>刪除 SupplyDelivery</h2>
+  
+  <select id="sdSelect">
+    <option value="">載入中...</option>
+  </select>
+  <button id="deleteBtn">刪除</button>
+
+  <p id="result"></p>
+
+  <script>
+    const FHIR_BASE_URL = "http://203.64.84.204:8080/fhir";
+
+    // 載入所有 SupplyDelivery 到下拉選單
+    async function loadSupplyDeliveries() {
+      try {
+        const res = await fetch(`${FHIR_BASE_URL}/SupplyDelivery`);
+        const data = await res.json();
+        const select = document.getElementById("sdSelect");
+        select.innerHTML = "";
+
+        if (data.entry && data.entry.length > 0) {
+          data.entry.forEach(item => {
+            const sd = item.resource;
+            const option = document.createElement("option");
+            // 可以顯示 ID 與目的地 location
+            const destination = sd.destination ? sd.destination.reference : "無";
+            option.value = sd.id;
+            option.textContent = `ID: ${sd.id} | Destination: ${destination}`;
+            select.appendChild(option);
+          });
+        } else {
+          const option = document.createElement("option");
+          option.value = "";
+          option.textContent = "沒有 SupplyDelivery";
+          select.appendChild(option);
+        }
+      } catch (err) {
+        console.error(err);
+        const select = document.getElementById("sdSelect");
+        select.innerHTML = `<option value="">載入失敗</option>`;
+      }
+    }
+
+    // 刪除選中的 SupplyDelivery
+    async function deleteSupplyDelivery() {
+      const select = document.getElementById("sdSelect");
+      const sdId = select.value;
+  
+
+      try {
+        const res = await fetch(`${FHIR_BASE_URL}/SupplyDelivery/${sdId}`, {
+          method: "DELETE"
+        });
+
+        if (res.ok) {
+          document.getElementById("result").textContent = `SupplyDelivery ${sdId} 已刪除`;
+          // 刪除後重新載入下拉選單
+          await loadSupplyDeliveries();
+        } else {
+          const text = await res.text();
+          document.getElementById("result").textContent = `刪除失敗: ${res.status} ${res.statusText}\n${text}`;
+        }
+      } catch (err) {
+        document.getElementById("result").textContent = `刪除失敗: ${err}`;
+      }
+    }
+
+    document.getElementById("deleteBtn").addEventListener("click", deleteSupplyDelivery);
+
+    document.addEventListener("DOMContentLoaded", loadSupplyDeliveries);
+  </script>
+</body>
+</html>

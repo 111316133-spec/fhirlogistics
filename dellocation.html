@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <title>刪除 Location</title>
+  <style>
+    body { font-family: Arial; padding: 20px; background: #fafafa; max-width: 900px; margin: auto;}
+    #log { margin-top: 20px; padding: 10px; background: #fff; border: 1px solid #ccc; white-space: pre-wrap; }
+    label{display:block;margin-top:12px}
+    select,button,input { padding: 8px; font-size: 16px; margin-top: 6px; }
+    button{cursor:pointer}
+  </style>
+</head>
+<body>
+
+  <h2>刪除 Location</h2>
+
+  <label>FHIR Server Base URL</label>
+  <input id="baseUrl" type="text" value="http://localhost:8080/fhir" style="width:100%" />
+
+  <div style="margin-top:12px;">
+    <button onclick="loadLocation()">載入 Location</button>
+    <span id="status" style="margin-left:10px;color:#777;">待命中</span>
+  </div>
+
+  <label>選擇 Location</label>
+  <select id="locSelect" style="width:100%;">
+    <option value="">-- 尚未載入 --</option>
+  </select>
+
+  <div style="margin-top:12px;">
+    <button onclick="deleteLoc()">刪除選取的 Location</button>
+    <button onclick="loadLocation()">重新載入</button>
+  </div>
+
+  <pre id="log">尚未執行</pre>
+
+<script>
+  const logBox = document.getElementById("log");
+  const statusBox = document.getElementById("status");
+  const locSelect = document.getElementById("locSelect");
+
+  function appendLog(msg){
+    const ts = new Date().toLocaleString();
+    logBox.textContent = `[${ts}] ${msg}\n` + logBox.textContent;
+  }
+
+  async function loadLocation(){
+    const base = document.getElementById("baseUrl").value.trim().replace(/\/+$/,"");
+
+    statusBox.textContent = "載入中...";
+    appendLog("開始載入 Location ...");
+
+    try{
+      const url = `${base}/Location?_count=200`;
+      const res = await fetch(url,{method:"GET",mode:"cors"});
+      const data = await res.json();
+
+      locSelect.innerHTML = ""; // 移除舊資料
+
+      if(!data.entry || data.entry.length === 0){
+        locSelect.innerHTML = `<option value="">（無 Location）</option>`;
+        statusBox.textContent = "無資料";
+        appendLog("查無 Location");
+        return;
+      }
+
+      data.entry.forEach(x=>{
+        const loc = x.resource;
+        if(!loc) return;
+        const id = loc.id || "";
+        let label = id;
+        if(loc.name) label = loc.name + " (" + id + ")";
+
+        const opt = document.createElement("option");
+        opt.value = id;
+        opt.textContent = label;
+        locSelect.appendChild(opt);
+      });
+
+      // 預設選第一個
+      if(locSelect.options.length>0){
+        locSelect.value = locSelect.options[0].value;
+      }
+
+      statusBox.textContent = `載入完成`;
+
+    }catch(e){
+      appendLog("錯誤：" + e.message);
+      statusBox.textContent = "載入失敗";
+    }
+  }
+
+
+  async function deleteLoc(){
+    const base = document.getElementById("baseUrl").value.trim().replace(/\/+$/,"");
+    const id = locSelect.value;
+
+    if(!base){
+      appendLog("⚠️ Base URL 不正確");
+      return;
+    }
+    if(!id){
+      appendLog("⚠️ 未選擇 Location");
+      return;
+    }
+
+    const url = `${base}/Location/${id}`;
+    appendLog("DELETE " + url);
+
+    try{
+      const res = await fetch(url,{method: "DELETE", mode:"cors"});
+
+      if(res.status===200 || res.status===204){
+        appendLog("✔️ 刪除成功：" + id);
+        statusBox.textContent = "刪除成功";
+
+        // 移除選項
+        const opt = locSelect.querySelector(`option[value="${id}"]`);
+        if(opt) opt.remove();
+        if(locSelect.options.length>0){
+          locSelect.value = locSelect.options[0].value;
+        }
+
+      }else{
+        appendLog("❌ 刪除失敗：" + res.status);
+      }
+    }catch(err){
+      appendLog("❌ 錯誤：" + err.message);
+    }
+  }
+</script>
+
+</body>
+</html>

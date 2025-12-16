@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title data-i18n="head.title">FHIR 註冊</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    /* 整頁背景與全域設定 */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body, html {
+      height: 100%;
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* 頂部導航/語言切換 */
+    .header {
+        width: 100%;
+        position: relative;
+        padding: 1.5rem;
+        display: flex;
+        justify-content: center;
+    }
+    .lang-switcher {
+      position: absolute;
+      top: 1.5rem;
+      right: 1.5rem;
+      border: 1px solid #fff;
+      background: rgba(255,255,255,0.15);
+      color: #fff;
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      backdrop-filter: blur(5px);
+    }
+    .lang-switcher option { background: #333; }
+
+    /* 玻璃卡片容器 */
+    .card {
+      max-width: 400px;
+      width: 90%;
+      margin-top: 2vh;
+      padding: 2rem;
+      border-radius: 16px;
+      background: rgba(255,255,255,0.15);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    }
+    .card h2 {
+      text-align: center;
+      margin-bottom: 1.5rem;
+      font-size: 1.6rem;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+
+    /* 表單樣式 */
+    .card form label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-size: 0.95rem;
+      font-weight: 500;
+    }
+    .card form input {
+      width: 100%;
+      padding: 0.75rem;
+      margin-bottom: 1rem;
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 8px;
+      background: rgba(255,255,255,0.25);
+      color: #fff;
+      font-size: 0.95rem;
+      outline: none;
+      transition: background 0.2s;
+    }
+    .card form input::placeholder { color: rgba(255,255,255,0.7); }
+    .card form input:focus { background: rgba(255,255,255,0.35); }
+
+    /* 註冊按鈕 */
+    .card form button {
+      width: 100%;
+      padding: 0.75rem;
+      border: none;
+      border-radius: 8px;
+      background: #ff8a65;
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.2s;
+    }
+    .card form button:hover { background: #ff7043; transform: translateY(-2px); }
+
+    /* 下方小按鈕群：登入 & 忘記密碼 */
+    .actions {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 1rem;
+    }
+    .actions a {
+      font-size: 0.85rem;
+      text-decoration: none;
+      color: #e0e0ff;
+      padding: 0.4rem 0.8rem;
+      border: 1px solid rgba(255,255,255,0.5);
+      border-radius: 6px;
+      transition: background 0.2s;
+    }
+    .actions a:hover { background: rgba(255,255,255,0.3); color: #fff; }
+
+    /* 【新增】訊息提示區塊 */
+    .message {
+        display: none; 
+        margin-top: 1.5rem; 
+        padding: 0.75rem;
+        border-radius: 6px; 
+        color: #fff; 
+        text-align: center;
+        transition: opacity 0.3s;
+    }
+    .message.error { background: rgba(220, 53, 69, 0.5); }
+    .message.success { background: rgba(40, 167, 69, 0.5); }
+  </style>
+</head>
+<body id="register-page">
+
+  
+
+  <div class="card">
+    <h2 data-i18n="h2.title">註冊帳號</h2>
+
+    <form id="registerForm">
+      <label data-i18n="name">姓名</label>
+      <input type="text" id="name" required>
+
+      <label data-i18n="label.email">Email</label>
+      <input type="email" id="email" required>
+
+      <label data-i18n="label.password">密碼</label>
+      <input type="password" id="password" required>
+
+      <button type="submit" data-i18n="nav.register">註冊</button>
+    </form>
+
+    <div class="actions">
+      <a href="/login.html" data-i18n="nav.login">已有帳號？ 前往登入</a>
+      <a href="/forgot.html" data-i18n="nav.forgot">忘記密碼</a>
+    </div>
+    <!-- 【新增】用於顯示訊息的 div -->
+    <div id="message" class="message"></div>
+  </div>
+<script src="script.js"></script>
+</body>
+</html>

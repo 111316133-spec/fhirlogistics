@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <title>物流配送員後台</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f5f7ff;
+      color: #333333;
+      padding: 20px;
+    }
+
+    h2 {
+      color: #4b4bff;
+      margin-bottom: 10px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+
+    th, td {
+      padding: 10px;
+      text-align: left;
+      border: 1px solid #d0d4e6;
+    }
+
+    th {
+      background-color: #6c63ff;
+      color: #ffffff;
+    }
+
+    tbody tr:nth-child(even) {
+      background-color: #eef0ff;
+    }
+
+    tbody tr:nth-child(odd) {
+      background-color: #ffffff;
+    }
+
+    button {
+      background-color: #6c63ff;
+      color: #ffffff;
+      border: none;
+      padding: 5px 10px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    button:hover {
+      background-color: #5750d1;
+    }
+  </style>
+</head>
+<body>
+
+<h2>物流配送員後台</h2>
+<button id="logoutBtn" style="float:right; background:#2453ec;">登出</button>
+
+<p>目前登入配送員：<span id="courierName">載入中…</span></p>
+<hr>
+
+<h2>我的配送任務</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Task ID</th>
+      <th>SupplyRequest</th>
+      <th>藥品名稱</th>
+      <th>數量</th>
+      <th>任務狀態</th>
+      <th>操作</th>
+    </tr>
+  </thead>
+  <tbody id="courierTaskTableBody">
+    <tr><td colspan="6">載入中...</td></tr>
+  </tbody>
+</table>
+
+<script>
+const FHIR_204 = "http://203.64.84.204:8080/fhir";
+const FHIR_209 = "http://203.64.84.209:8080/fhir";
+let courierPractitionerId = null;
+
+// ----------------------
+// 取得登入配送員資訊
+// ----------------------
+async function loadCourierInfo() {
+  try {
+    const res = await fetch("/api/organizations", { credentials: "include" });
+    const list = await res.json();
+
+    if (!list.length) {
+      alert("未登入或沒有對應的物流角色！");
+      location.href = "/login.html";
+      return;
+    }
+
+    const admin = list[0];
+    courierPractitionerId = admin.practitionerId;
+
+    const personName = await getPersonNameByPractitioner(courierPractitionerId);
+    document.getElementById("courierName").innerText = personName;
+
+    loadCourierTasks(courierPractitionerId);
+
+  } catch (err) {
+    console.error("❌ 無法取得登入資訊", err);
+    alert("無法取得登入資訊");
+  }
+}
+document.getElementById("logoutBtn").onclick = async () => {
+  await fetch("/api/logout", {
+    method: "POST",
+    credentials: "include"
+  });
+
+  localStorage.clear();  // 如果你有儲存 email / orgId
+  window.location.href = "/login.html"; // 回首頁或登入頁
+};
+// ----------------------
+// 用 PractitionerId 找 Person.name
+// ----------------------
+async function getPersonNameByPractitioner(practitionerId) {
+  const url = `${FHIR_204}/Person?link=${encodeURIComponent("Practitioner/" + practitionerId)}`;
+  const res = await fetch(url);
+  const bundle = await res.json();
+
+  if (!bundle.entry || !bundle.entry.length) return "(未命名配送員)";
+  const person = bundle.entry[0].resource;
+  return person.name?.[0]?.text || "(未命名配送員)";
+}
+
+// ----------------------
+// 載入任務列表
+// ----------------------
+async function loadCourierTasks(practitionerId) {
+  const url = `${FHIR_204}/Task?owner=Practitioner/${practitionerId}&_count=100`;
+  const res = await fetch(url);
+  const bundle = await res.json();
+
+  const tbody = document.getElementById("courierTaskTableBody");
+  tbody.innerHTML = "";
+
+  if (!bundle.entry || bundle.entry.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6">目前沒有任務</td></tr>`;
+    return;
+  }
+
+  for (const e of bundle.entry) {
+    const task = e.resource;
+
+    let medName = "-";
+    let medQty = "-";
+
+    if (Array.isArray(task.input)) {
+      for (const input of task.input) {
+        const code = input.type?.coding?.[0]?.code;
+        if (code === "medication" && input.valueCodeableConcept) {
+          medName = input.valueCodeableConcept.text || input.valueCodeableConcept.coding?.[0]?.display || "-";
+        }
+        if (code === "medication-quantity" && input.valueQuantity) {
+          medQty = input.valueQuantity.value || "-";
+        }
+      }
+    }
+
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${task.id}</td>
+      <td>${task.focus?.reference || "-"}</td>
+      <td>${medName}</td>
+      <td>${medQty}</td>
+      <td>${task.status || "-"}</td>
+      <td>
+        <button onclick="updateTaskStatus('${task.id}', 'in-progress')">進行中</button>
+        <button onclick='completeTaskWithActions("${task.id}")'>完成</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  }
+}
+
+// ----------------------
+// 更新 Task 狀態
+// ----------------------
+async function updateTaskStatus(taskId, status) {
+  const res = await fetch(`${FHIR_204}/Task/${taskId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json-patch+json" },
+    body: JSON.stringify([{ op: "replace", path: "/status", value: status }])
+  });
+  if (!res.ok) { alert("更新任務狀態失敗！"); return; }
+  alert(`✔ 任務狀態更新為 ${status}`);
+  loadCourierTasks(courierPractitionerId);
+}
+
+// ----------------------
+// 完成任務並建立 SupplyDelivery & 通知
+// ----------------------
+
+async function completeTaskWithActions(taskId) {
+  // --- 取得 Task ---
+  let task;
+  try {
+    const res = await fetch(`${FHIR_204}/Task/${taskId}`);
+    task = await res.json();
+  } catch (err) {
+    console.error("❌ 取得 Task 失敗", err);
+    return;
+  }
+
+  const supplyRequestRef = task.focus?.reference;
+  if (!supplyRequestRef) {
+    alert("❌ Task 沒有 focus SupplyRequest");
+    return;
+  }
+
+  // --- 取得 SupplyRequest ---
+  let supplyRequest;
+  let medicationName = "藥品";
+
+  let deliverToOrg = null;
+  let deliverFromOrg = null;
+  let supplierOrg = null;
+
+  try {
+    const res = await fetch(`${FHIR_204}/${supplyRequestRef}`);
+    supplyRequest = await res.json();
+
+    medicationName = supplyRequest.itemCodeableConcept?.text || medicationName;
+
+    deliverToOrg   = supplyRequest.deliverTo;
+    deliverFromOrg = supplyRequest.deliverFrom;
+    supplierOrg    = supplyRequest.supplier?.[0];
+  } catch (err) {
+    console.error("❌ 取得 SupplyRequest 失敗", err);
+    return;
+  }
+
+  // ----------------------------
+  // 建立 deliverTo → Location
+  // ----------------------------
+  let locationRef;
+
+  if (!deliverToOrg || !deliverToOrg.reference) {
+    alert("❌ SupplyRequest 缺少 deliverTo");
+    return;
+  }
+
+  const deliverToRef = deliverToOrg.reference; 
+
+  try {
+    const locRes = await fetch(
+      `${FHIR_204}/Location?managingOrganization=${encodeURIComponent(deliverToRef)}`
+    );
+    const locBundle = await locRes.json();
+
+    if (locBundle.entry?.length) {
+      locationRef = `Location/${locBundle.entry[0].resource.id}`;
+    } else {
+      const orgRes = await fetch(`${FHIR_204}/${deliverToRef}`);
+      const orgData = await orgRes.json();
+      const locName = orgData.name || deliverToOrg.display || "配送目的地";
+
+      const newLocRes = await fetch(`${FHIR_204}/Location`, {
+        method: "POST",
+        headers: { "Content-Type": "application/fhir+json" },
+        body: JSON.stringify({
+          resourceType: "Location",
+          name: locName,
+          managingOrganization: { reference: deliverToRef },
+          description: "配送目的地"
+        })
+      });
+
+      const newLoc = await newLocRes.json();
+      locationRef = `Location/${newLoc.id}`;
+    }
+  } catch (err) {
+    console.error("❌ 取得或建立 Location 失敗", err);
+    alert("❌ 無法取得或建立配送 Location");
+    return;
+  }
+
+  // ----------------------------
+  // 建立 SupplyDelivery
+  // ----------------------------
+  const supplyDelivery = {
+    resourceType: "SupplyDelivery",
+    status: "completed",
+    identifier: supplyRequest.identifier?.map(id => ({
+      system: id.system || "http://example.org/patient-email",
+      value: id.value
+    })),
+    suppliedItem: {
+      itemCodeableConcept: supplyRequest.itemCodeableConcept,
+      quantity: supplyRequest.quantity
+    },
+    supplier: supplierOrg
+      ? [supplierOrg]
+      : [{ reference: "Organization/2096", display: "物流公司" }],
+    occurrenceDateTime: new Date().toISOString(),
+    destination: { reference: locationRef },
+    origin: deliverFromOrg
+      ? { reference: deliverFromOrg.reference, display: deliverFromOrg.display }
+      : undefined,
+    receiver: [
+      { reference: `Practitioner/${courierPractitionerId}`, display: "配送員" }
+    ],
+    basedOn: [{ reference: supplyRequestRef }]
+  };
+
+  let supplyDeliveryId;
+  try {
+    const res = await fetch(`${FHIR_204}/SupplyDelivery`, {
+      method: "POST",
+      headers: { "Content-Type": "application/fhir+json" },
+      body: JSON.stringify(supplyDelivery)
+    });
+    const result = await res.json();
+    supplyDeliveryId = result.id;
+    console.log("✅ SupplyDelivery 建立成功 ID:", supplyDeliveryId);
+  } catch (err) {
+    console.error("❌ 建立 SupplyDelivery 發生錯誤", err);
+    return;
+  }
+
+  // ----------------------------
+  // 通知病人 (使用 SupplyRequest.identifier.email)
+  // ----------------------------
+ // 通知病人 (email 直接放在 payload)
+const patientEmail = supplyRequest.identifier?.find(id => id.system === "http://example.org/patient-email")?.value;
+
+if (patientEmail) {
+  const communicationForPatient = {
+    resourceType: "Communication",
+    status: "completed",
+    sent: new Date().toISOString(),
+    sender: { reference: `Practitioner/${courierPractitionerId}` },
+    payload: [
+      {
+        contentString: `✅ 您的藥品「${medicationName}」已成功配送到指定社區小商店，配送單號: ${supplyDeliveryId},可申請配送藥品到家`
+      },
+      {
+        contentString: `📧 您的 Email: ${patientEmail}`
+      }
+    ]
+  };
+
+  try {
+    await fetch(`${FHIR_204}/Communication`, {
+      method: "POST",
+      headers: { "Content-Type": "application/fhir+json" },
+      body: JSON.stringify(communicationForPatient)
+    });
+    console.log("✅ 已建立 Communication，payload 包含病人 email:", patientEmail);
+  } catch (err) {
+    console.error("❌ 建立 Communication 失敗", err);
+  }
+}
+
+
+  // ----------------------------
+  // 通知藥師
+  // ----------------------------
+  const pharmacistPractitionerId = "1513";
+  const courierPractitionerId209 = "1514";
+
+  const communicationForPharmacist = {
+    resourceType: "Communication",
+    status: "completed",
+    sent: new Date().toISOString(),
+    subject: { reference: "Patient/patient-young" },
+    recipient: [{ reference: `Practitioner/${pharmacistPractitionerId}` }],
+    sender: { reference: `Practitioner/${courierPractitionerId209}` },
+    payload: [
+      {
+        contentString: `✅ 配送單 ${supplyDeliveryId} 已完成，藥品「${medicationName}」已成功送達`
+      }
+    ]
+  };
+
+  try {
+    await fetch(`${FHIR_209}/Communication`, {
+      method: "POST",
+      headers: { "Content-Type": "application/fhir+json" },
+      body: JSON.stringify(communicationForPharmacist)
+    });
+  } catch (err) {
+    console.error("❌ 通知藥師失敗", err);
+  }
+
+  // ----------------------------
+  // 更新 Task
+  // ----------------------------
+  try {
+    await fetch(`${FHIR_204}/Task/${taskId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json-patch+json" },
+      body: JSON.stringify([{ op: "replace", path: "/status", value: "completed" }])
+    });
+
+    alert("✔ 配送完成，已建立 SupplyDelivery 並通知相關人員。");
+  } catch (err) {
+    console.error("❌ 更新 Task 失敗", err);
+  }
+
+  loadCourierTasks(courierPractitionerId);
+}
+
+
+// ----------------------
+// 初始化
+// ----------------------
+loadCourierInfo();
+</script>
+
+</body>
+</html>

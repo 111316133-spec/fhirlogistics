@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>Portal 管理員 - 審核申請</title>
+  <style>
+    body { 
+      font-family: Arial, sans-serif; 
+      margin: 2rem; 
+      background: #f0f2f5; 
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      padding: 2rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h1 { 
+      color: #333;
+      margin-bottom: 1.5rem;
+      text-align: center;
+    }
+    table { 
+      width: 100%; 
+      border-collapse: collapse; 
+      margin-bottom: 1rem; 
+    }
+    th, td { 
+      padding: 0.75rem; 
+      border: 1px solid #ddd; 
+      text-align: left; 
+    }
+    th { 
+      background: #667eea; 
+      color: #fff; 
+      font-weight: bold;
+    }
+    tr:nth-child(even) {
+      background: #f8f9fa;
+    }
+    tr:hover {
+      background: #e9ecef;
+    }
+    button { 
+      padding: 0.5rem 1rem; 
+      margin-right: 0.5rem; 
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: all 0.3s;
+    }
+    .approve-btn {
+      background: #28a745;
+      color: white;
+    }
+    .approve-btn:hover {
+      background: #218838;
+    }
+    .reject-btn {
+      background: #dc3545;
+      color: white;
+    }
+    .reject-btn:hover {
+      background: #c82333;
+    }
+    #message { 
+      margin-bottom: 1rem; 
+      padding: 0.75rem;
+      border-radius: 4px;
+      display: none;
+    }
+    .message-success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    .message-error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    .loading {
+      text-align: center;
+      padding: 2rem;
+      color: #666;
+    }
+    .empty-state {
+      text-align: center;
+      padding: 3rem;
+      color: #666;
+      font-style: italic;
+    }
+    .delete-btn {
+  background: #6c757d;
+  color: white;
+}
+.delete-btn:hover {
+  background: #5a6268;
+}
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Portal 管理員 - 審核機構組織申請</h1>
+  <button id="logoutBtn" style="float:right; background:#2453ec;">登出</button>
+  <div id="message"></div>
+
+  <table id="requestTable">
+    <thead>
+  <tr>
+    <th>公司名稱</th>
+    <th>組織類型</th>
+    <th>申請者 Email</th>
+    <th>職位</th>
+    <th>申請時間</th>
+    <th>地址</th>
+    <th>操作</th>
+  </tr>
+</thead>
+
+    <tbody>
+      <tr>
+        <td colspan="6" class="loading">載入中...</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<script>
+// =========================
+// 全域變數
+// =========================
+let requests = [];
+
+// =========================
+// 顯示訊息
+// =========================
+function showMessage(msg, success = false) {
+  const div = document.getElementById("message");
+  div.textContent = msg;
+  div.className = success ? "message-success" : "message-error";
+  div.style.display = "block";
+  
+  // 自動隱藏成功訊息
+  if (success) {
+    setTimeout(() => {
+      div.style.display = "none";
+    }, 5000);
+  }
+}
+
+// =========================
+// 載入待審核資料
+// =========================
+async function loadRequests() {
+  const tbody = document.querySelector("#requestTable tbody");
+  
+  try {
+    console.log("🔍 開始載入待審核申請...");
+    const res = await fetch("/api/admin/pending-logistics", { 
+      credentials: "include" 
+    });
+    
+    if (!res.ok) {
+      throw new Error(`無法載入申請資料: ${res.status}`);
+    }
+    
+    requests = await res.json();
+    console.log("✅ 載入到的申請資料:", requests);
+    
+    renderTable();
+    
+  } catch(err) {
+    console.error("❌ 載入失敗:", err);
+    tbody.innerHTML = `<tr><td colspan="6" style="color: red; text-align: center;">載入失敗: ${err.message}</td></tr>`;
+    showMessage(`載入失敗: ${err.message}`);
+  }
+}
+// 登出按鈕
+document.getElementById("logoutBtn").addEventListener("click", async () => {
+
+
+  try {
+    const res = await fetch("/api/logout", {
+      method: "POST",
+      credentials: "include"
+    });
+
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error(err || "登出失敗");
+    }
+
+    // 登出成功後跳轉到登入頁
+    window.location.href = "/login.html";
+
+  } catch (err) {
+    console.error("❌ 登出失敗:", err);
+    showMessage(`登出失敗：${err.message}`);
+  }
+});
+
+// =========================
+// 渲染表格（含通過/拒絕按鈕）
+// =========================
+function renderTable() {
+  const tbody = document.querySelector("#requestTable tbody");
+
+  if (requests.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="7" class="empty-state">
+          目前沒有待審核的申請
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  tbody.innerHTML = "";
+
+  requests.forEach(request => {
+    const tr = document.createElement("tr");
+
+    const address = request.address || "未填寫地址";
+
+    tr.innerHTML = `
+      <td><strong>${request.orgName || '未命名公司'}</strong></td>
+      <td>${request.orgType || 'logistics'}</td>
+      <td>${request.email || '未提供 Email'}</td>
+      <td>${request.position || request.roleDisplay || '未設定職位'}</td>
+
+
+      <td>${new Date(request.createdAt || Date.now()).toLocaleDateString('zh-TW')}</td>
+      <td>${address}</td>
+      <td>
+        <button class="approve-btn" onclick="approveRequest('${request.organizationId}')">
+
+
+          通過
+        </button>
+        <button class="reject-btn" onclick="rejectRequest('${request.organizationId}')">
+          拒絕
+        </button>
+        <button class="delete-btn" onclick="deleteOrg('${request.organizationId}')">刪除
+          </button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// =========================
+// 通過申請
+// =========================
+async function approveRequest(organizationId) {
+  const request = requests.find(r => r.organizationId === organizationId);
+
+  if (!request) {
+    showMessage("找不到該申請資料");
+    return;
+  }
+
+  if (!confirm(`確定要通過「${request.orgName}」的申請嗎？`)) {
+    return;
+  }
+
+  try {
+    console.log("✅ 開始通過申請:", organizationId);
+    
+    // 首先需要取得 Practitioner 和 PractitionerRole 的 ID
+    const roleRes = await fetch(
+      `${FHIR_BASE}/PractitionerRole?organization=Organization/${organizationId}`,
+      { credentials: "include" }
+    );
+    
+    if (!roleRes.ok) {
+      throw new Error("無法取得角色資料");
+    }
+    
+    const roleData = await roleRes.json();
+    console.log("🔍 角色資料:", roleData);
+    
+    if (!roleData.entry || roleData.entry.length === 0) {
+      throw new Error("找不到對應的角色資料");
+    }
+    
+    const role = roleData.entry[0].resource;
+    const practitionerId = role.practitioner.reference.split('/')[1];
+    const roleId = role.id;
+    
+    console.log("🔍 找到的 ID:", { organizationId, practitionerId, roleId });
+
+    const res = await fetch(`/api/admin/approve-logistics`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ 
+        organizationId: organizationId,
+        practitionerId: practitionerId,
+        roleId: roleId
+      })
+    });
+
+    const result = await res.json();
+
+    if (!res.ok) {
+      throw new Error(result.error || result.detail || "通過申請失敗");
+    }
+
+    showMessage(`✅ 已通過申請：${request.orgName}`, true);
+    console.log("✅ 通過申請成功:", result);
+
+    // 從前端列表移除
+    requests = requests.filter(r => r.organizationId !== organizationId);
+
+    renderTable();
+
+  } catch (err) {
+    console.error("❌ 通過申請失敗:", err);
+    showMessage(`❌ 通過申請失敗: ${err.message}`);
+  }
+}
+
+// =========================
+// 拒絕申請
+// =========================
+async function rejectRequest(organizationId) {
+  const request = requests.find(r => r.organizationId === organizationId);
+
+  if (!request) {
+    showMessage("找不到該申請資料");
+    return;
+  }
+
+  const reason = prompt(`請輸入拒絕「${request.orgName}」申請的原因：`);
+  if (!reason) {
+    showMessage("已取消拒絕操作");
+    return;
+  }
+
+  if (reason.trim().length === 0) {
+    showMessage("請輸入拒絕原因");
+    return;
+  }
+
+  try {
+    console.log("❌ 開始拒絕申請:", organizationId);
+    
+    // 首先需要取得 Practitioner 和 PractitionerRole 的 ID
+    const roleRes = await fetch(
+      `${FHIR_BASE}/PractitionerRole?organization=Organization/${organizationId}`,
+      { credentials: "include" }
+    );
+    
+    if (!roleRes.ok) {
+      throw new Error("無法取得角色資料");
+    }
+    
+    const roleData = await roleRes.json();
+    console.log("🔍 角色資料:", roleData);
+    
+    if (!roleData.entry || roleData.entry.length === 0) {
+      throw new Error("找不到對應的角色資料");
+    }
+    
+    const role = roleData.entry[0].resource;
+    const practitionerId = role.practitioner.reference.split('/')[1];
+    const roleId = role.id;
+
+    const res = await fetch(`/api/admin/reject-admin`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({
+        organizationId: organizationId,
+        practitionerId: practitionerId,
+        roleId: roleId,
+        reason: reason.trim()
+      })
+    });
+
+    const result = await res.json();
+
+    if (!res.ok) {
+      throw new Error(result.error || result.detail || "拒絕申請失敗");
+    }
+
+    showMessage(`❌ 已拒絕申請：${request.orgName}`, true);
+    console.log("✅ 拒絕申請成功:", result);
+
+    // 從前端列表移除
+    requests = requests.filter(r => r.organizationId !== organizationId);
+
+    renderTable();
+
+  } catch (err) {
+    console.error("❌ 拒絕申請失敗:", err);
+    showMessage(`❌ 拒絕申請失敗: ${err.message}`);
+  }
+}
+// =========================
+// 刪除申請
+// =========================
+
+async function deleteOrg(organizationId) {
+  const request = requests.find(r => r.organizationId === organizationId);
+  if (!request) {
+    showMessage("找不到該申請資料");
+    return;
+  }
+
+  if (!confirm(`⚠ 確定要刪除「${request.orgName}」及其角色資料嗎？\n此動作無法復原！`)) {
+    return;
+  }
+
+  try {
+    // 1. 找 PractitionerRole
+    const roleRes = await fetch(
+      `${FHIR_BASE}/PractitionerRole?organization=Organization/${organizationId}`,
+      { credentials: "include" }
+    );
+
+    if (!roleRes.ok) throw new Error("查詢對應角色失敗");
+
+    const roleData = await roleRes.json();
+
+    if (!roleData.entry || roleData.entry.length === 0)
+      throw new Error("找不到 PractitionerRole");
+
+    const role = roleData.entry[0].resource;
+    const roleId = role.id;
+
+    // 2. 執行刪除 PractitionerRole
+    const delRole = await fetch(`${FHIR_BASE}/PractitionerRole/${roleId}`, {
+      method: "DELETE",
+      credentials: "include"
+    });
+
+    if (!delRole.ok) {
+      const err = await delRole.text();
+      throw new Error(`刪除 PractitionerRole 失敗: ${err}`);
+    }
+
+    // 3. 刪除 Organization
+    const delOrg = await fetch(`${FHIR_BASE}/Organization/${organizationId}`, {
+      method: "DELETE",
+      credentials: "include"
+    });
+
+    if (!delOrg.ok) {
+      const err = await delOrg.text();
+      throw new Error(`刪除 Organization 失敗: ${err}`);
+    }
+
+    showMessage(`🗑 已刪除組織「${request.orgName}」與其角色資料`, true);
+
+    // 4. 從前端 UI 移除
+    requests = requests.filter(r => r.organizationId !== organizationId);
+    renderTable();
+
+  } catch (err) {
+    console.error("❌ 刪除失敗:", err);
+    showMessage(`刪除失敗：${err.message}`);
+  }
+}
+
+// =========================
+// 添加全域變數（需要與後端一致）
+// =========================
+const FHIR_BASE = 'http://203.64.84.204:8080/fhir'; // 與後端保持一致
+
+// =========================
+// 初始載入
+// =========================
+document.addEventListener("DOMContentLoaded", () => {
+  console.log("🚀 管理員頁面載入完成");
+  loadRequests();
+  
+  // 定期刷新資料（每30秒）
+  setInterval(loadRequests, 30000);
+});
+</script>
+
+</body>
+</html>

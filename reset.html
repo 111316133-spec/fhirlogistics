@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title data-i18n="reset.title">Reset Password</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    /* === Global & Background === */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      height: 100%;
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: #fff;
+    }
+
+    /* === Header: nav + language switcher === */
+    .header {
+      position: relative;
+      width: 100%;
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .header nav {
+      display: flex;
+      gap: 1rem;
+    }
+    .header nav a {
+      display: inline-block;
+      padding: 0.5rem 1rem;
+      border: 1px solid rgba(255,255,255,0.6);
+      border-radius: 20px;
+      background: rgba(255,255,255,0.15);
+      color: #fff;
+      text-decoration: none;
+      font-size: 0.9rem;
+      transition: background 0.2s, color 0.2s;
+      backdrop-filter: blur(5px);
+    }
+    .header nav a:hover {
+      background: rgba(255,255,255,0.3);
+      border-color: #fff;
+    }
+    .lang-switcher {
+      position: absolute;
+      top: 1rem;
+      right: 2rem;
+      border: 1px solid #fff;
+      background: rgba(255,255,255,0.15);
+      color: #fff;
+      padding: 0.4rem 0.8rem;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      backdrop-filter: blur(5px);
+      transition: background 0.2s, border-color 0.2s;
+      z-index: 1000;
+    }
+    .lang-switcher option { background: #333; }
+    .lang-switcher:hover {
+      background: rgba(255,255,255,0.25);
+      border-color: rgba(255,255,255,0.8);
+    }
+
+    hr {
+      border: none;
+      border-top: 1px solid rgba(255,255,255,0.3);
+      margin: 0 2rem;
+    }
+
+    /* === Container & Card === */
+    .container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: calc(100% - 100px);
+    }
+    .card {
+      width: 360px;
+      max-width: 90vw;
+      padding: 2rem;
+      border-radius: 16px;
+      background: rgba(255,255,255,0.15);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    }
+    .card h2 {
+      text-align: center;
+      margin-bottom: 1.5rem;
+      font-size: 1.6rem;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+
+    /* === Form === */
+    .card form label {
+      display: block;
+      margin-bottom: 0.25rem;
+      font-size: 0.95rem;
+      font-weight: 500;
+    }
+    .card form input {
+      width: 100%;
+      padding: 0.75rem;
+      margin-bottom: 1rem;
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 8px;
+      background: rgba(255,255,255,0.25);
+      color: #fff;
+      font-size: 0.95rem;
+      outline: none;
+      transition: background 0.2s;
+    }
+    .card form input:focus {
+      background: rgba(255,255,255,0.35);
+    }
+
+    /* === Button === */
+    .card button {
+      width: 100%;
+      padding: 0.75rem;
+      border: none;
+      border-radius: 8px;
+      background: #ff8a65;
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.2s;
+    }
+    .card button:hover {
+      background: #ff7043;
+      transform: translateY(-2px);
+    }
+
+    /* === Message display area === */
+    .message {
+      display: none;
+      margin-top: 1.5rem;
+      padding: 0.75rem;
+      background: rgba(0,0,0,0.3);
+      border-radius: 6px;
+      font-size: 0.85rem;
+      color: #e0e0e0;
+      text-align: center;
+    }
+    .message.success { background: rgba(40, 167, 69, 0.5); }
+    .message.error { background: rgba(220, 53, 69, 0.5); }
+  </style>
+</head>
+<body id="reset-password-page">
+
+  <div class="header">
+    <nav>
+      <a href="/login.html" data-i18n="nav.login">Login</a>
+      <a href="/register.html" data-i1e="nav.register">Register</a>
+      <a href="/forgot.html" data-i18n="nav.forgot">Forgot Password</a>
+    </nav>
+
+  </div>
+  <hr>
+
+  <div class="container">
+    <div class="card">
+      <h2 data-i18n="reset.title">Reset Password</h2>
+      
+      <form id="resetForm">
+        <label for="password" data-i18n="reset.newPassword">New Password</label>
+        <input type="password" id="password" required>
+
+        <label for="confirm-password" data-i18n="reset.confirmPassword">Confirm Password</label>
+        <input type="password" id="confirm-password" required>
+
+        <button type="submit" data-i18n="reset.submit">
+          Reset Password
+        </button>
+      </form>
+      <div id="message" class="message"></div>
+    </div>
+  </div>
+  <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>社區志工 — 物資配送任務</title>
+
+<style>
+:root {
+   --primary: #4b6bff;
+   --primary-light: #6d86ff;
+   --success: #4caf50;
+   --warning: #ff9800;
+   --info: #2196f3;
+   --secondary: #8c5cff;
+   --danger: #f44336;
+   --light: #f3f5ff;
+   --dark: #333;
+   --radius: 10px;
+   --shadow: 0 4px 14px rgba(0,0,0,0.08);
+}
+
+body {
+   margin:0;
+   background:var(--light);
+   font-family:"Segoe UI","Microsoft JhengHei",sans-serif;
+   color: var(--dark);
+}
+
+/* ---- Header ---- */
+.header {
+   background: linear-gradient(135deg, var(--primary), var(--primary-light));
+   padding:20px;
+   color:white;
+   font-size:22px;
+   font-weight:600;
+   display:flex;
+   justify-content:space-between;
+   align-items:center;
+   box-shadow: var(--shadow);
+}
+
+.user-info {
+   font-size: 14px;
+   opacity: 0.95;
+}
+
+/* ---- Layout ---- */
+.container {
+   padding:30px;
+   max-width:1200px;
+   margin:0 auto;
+}
+
+h2 {
+   margin:5px 0 15px 0;
+   font-weight:600;
+   color: var(--dark);
+}
+
+/* ---- Table ---- */
+table {
+   width:100%;
+   border-collapse:collapse;
+   background:white;
+   border-radius: var(--radius);
+   overflow:hidden;
+   box-shadow: var(--shadow);
+}
+
+thead {
+   background: var(--primary);
+   color:white;
+}
+
+thead th {
+   padding:14px;
+   font-size:15px;
+   letter-spacing:0.5px;
+}
+
+tbody tr {
+   border-bottom:1px solid #eee;
+}
+
+tbody tr:hover {
+   background:#f8faff;
+}
+
+td {
+   padding:12px 15px;
+   font-size:14px;
+   color:#444;
+}
+
+/* ---- Status badge ---- */
+.status-badge {
+   display:inline-block;
+   padding:6px 12px;
+   border-radius:20px;
+   font-size:12px;
+   font-weight:600;
+}
+
+.status-active { background:#e8f5e8; color:var(--success); }
+.status-in-progress { background:#fff3e0; color:var(--warning); }
+.status-processing { background:#e3f2fd; color:var(--info); }
+.status-completed { background:#e8f5e8; color:var(--success); }
+.status-cancelled { background:#ffebee; color:var(--danger); }
+
+/* ---- Buttons ---- */
+.btn {
+   padding:8px 18px;
+   border-radius: var(--radius);
+   border:none;
+   cursor:pointer;
+   color:white;
+   font-size:14px;
+   font-weight:600;
+   transition:0.2s;
+   box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+.btn:hover {
+   transform: translateY(-1px);
+   box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.start { background: var(--warning); }
+.done { background: var(--info); }
+
+.btn:disabled {
+   background:#bbb !important;
+   cursor:not-allowed;
+   opacity:0.7;
+   box-shadow:none;
+}
+
+/* ---- Loading / Error ---- */
+.loading {
+   text-align:center;
+   padding:20px;
+   color:#666;
+}
+
+.error {
+   background:#ffe5e7;
+   color:#c62828;
+   padding:15px;
+   border-radius: var(--radius);
+   margin-top:10px;
+}
+
+/* ---- Empty State ---- */
+.empty-state {
+   padding:40px 20px;
+   text-align:center;
+   color:#555;
+}
+
+/* ---- Card Style (若你要用) ---- */
+.card {
+   background:white;
+   padding:20px;
+   border-radius:var(--radius);
+   box-shadow: var(--shadow);
+   margin-bottom:20px;
+}
+
+</style>
+
+</head>
+<body>
+
+<div class="header">
+   <div>社區志工 — 藥品配送任務</div>
+    <div class="user-info" id="userInfo">載入中...</div>
+        <button id="logoutBtn" 
+              style="background:#476ff3;color: white ;padding:6px 14px; border-radius:8px; cursor:pointer;">
+        登出
+      </button>
+</div>
+
+<div class="container">
+  <h2>我的任務</h2>
+  <table border="1" width="100%" id="taskTable">
+    <thead>
+      <tr>
+        <th>Task ID</th>
+        <th>物品</th>
+        <th>數量</th>
+        <th>病人地址</th>
+        <th>狀態</th>
+        <th>備註</th>
+        <th>操作</th>
+      </tr>
+    </thead>
+    <tbody id="taskTableBody">
+      <tr><td colspan="6" class="loading">載入中...</td></tr>
+    </tbody>
+  </table>
+</div>
+  
+
+<script>
+const FHIR_BASE = "http://203.64.84.204:8080/fhir";
+async function loadUserInfo() {
+  const userInfoDiv = document.getElementById("userInfo");
+  try {
+    const res = await fetch('/api/organizations');
+    const orgs = await res.json();
+
+    if (!orgs.length) {
+      userInfoDiv.textContent = "未登入或無組織資料";
+      return;
+    }
+
+    const firstOrg = orgs[0];
+    const practitionerId = firstOrg.practitionerId;
+    const orgName = firstOrg.orgName;
+    const roleDisplay = firstOrg.roleDisplay;
+
+    userInfoDiv.textContent = `Practitioner ID: ${practitionerId} | 組織: ${orgName} | 職位: ${roleDisplay}`;
+  } catch (err) {
+    userInfoDiv.textContent = "取得使用者資訊失敗";
+    console.error(err);
+  }
+}
+
+/* ------------------------------
+   抓病人地址
+------------------------------ */
+async function getPatientAddress(patientRef) {
+  if (!patientRef) return "-";
+
+  try {
+    const res = await fetch(`${FHIR_BASE}/${patientRef}`);
+    const patient = await res.json();
+
+    const addr = patient.address?.[0];
+    if (!addr) return "-";
+
+    return (
+      addr.text ||
+      `${addr.country || ""}${addr.state || ""}${addr.city || ""}${addr.district || ""}${addr.line?.join("") || ""}`
+    );
+  } catch {
+    return "-";
+  }
+}
+
+/* ------------------------------
+   讀取任務
+------------------------------ */
+async function loadMyTasks() {
+  const tbody = document.getElementById("taskTableBody");
+  tbody.innerHTML = `<tr><td colspan="6" class="loading">載入中...</td></tr>`;
+
+  try {
+    const orgsRes = await fetch('/api/organizations');
+    const orgs = await orgsRes.json();
+
+    if (!orgs.length) {
+      tbody.innerHTML = `<tr><td colspan="6">無任務 (無組織或未登入)</td></tr>`;
+      return;
+    }
+
+    const currentPractitionerId = orgs[0].practitionerId;
+
+    const res = await fetch(`${FHIR_BASE}/Task?owner=Practitioner/${currentPractitionerId}&_count=100`);
+    const bundle = await res.json();
+
+    if (!bundle.entry?.length) {
+      tbody.innerHTML = `<tr><td colspan="6">目前沒有任務</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = "";
+
+    for (const e of bundle.entry) {
+      const task = e.resource;
+
+      let item = "-", quantity = "-";
+      task.input?.forEach(input => {
+        if (input.type?.coding?.[0]?.code === "medication")
+          item = input.valueCodeableConcept?.text || "-";
+        if (input.type?.coding?.[0]?.code === "medication-quantity")
+          quantity = `${input.valueQuantity?.value || "-"} ${input.valueQuantity?.unit || ""}`;
+      });
+
+      // 取得病人地址
+      let patientAddress = "-";
+      if (task.focus?.reference) {
+        try {
+          const srRes = await fetch(`${FHIR_BASE}/${task.focus.reference}`);
+          const supplyReq = await srRes.json();
+
+          const patientRef = supplyReq.requester?.reference;
+          patientAddress = await getPatientAddress(patientRef);
+        } catch {
+          patientAddress = "-";
+        }
+      }
+
+      const tr = document.createElement("tr");
+      tr.setAttribute("data-id", task.id);
+
+      tr.innerHTML = `
+        <td>${task.id}</td>
+        <td>${item}</td>
+        <td>${quantity}</td>
+        <td>${patientAddress}</td>
+        <td id="status-${task.id}">${task.status}</td>
+        <td>${task.note?.[0]?.text || "-"}</td>
+        <td>
+          <button onclick="updateTaskStatus('${task.id}', 'in-progress')" class="btn start"
+            ${task.status === 'completed' ? 'disabled' : ''}>配送中</button>
+          
+          <button onclick="updateTaskStatus('${task.id}', 'completed')" class="btn done"
+            ${task.status === 'completed' ? 'disabled' : ''}>完成</button>
+        </td>
+      `;
+
+      tbody.appendChild(tr);
+    }
+
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="6" class="error">載入任務失敗: ${err.message}</td></tr>`;
+    console.error(err);
+  }
+}
+
+/* ------------------------------
+   動畫淡出後刪除任務列
+------------------------------ */
+function fadeOutAndRemoveRow(taskId) {
+  const row = document.querySelector(`tr[data-id="${taskId}"]`);
+  if (!row) return;
+
+  row.style.transition = "opacity 0.5s";
+  row.style.opacity = "0";
+
+  setTimeout(() => row.remove(), 500);
+}
+
+/* ------------------------------
+   更新任務狀態
+------------------------------ */
+async function updateTaskStatus(taskId, newStatus) {
+  try {
+    const ops = [{ op: "replace", path: "/status", value: newStatus }];
+    const res = await fetch(`${FHIR_BASE}/Task/${taskId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json-patch+json" },
+      body: JSON.stringify(ops)
+    });
+
+    if (!res.ok) throw new Error("任務狀態更新失敗");
+
+    // 若完成 → 建立 Communication
+    if (newStatus === "completed") {
+      await sendCompletionCommunication(taskId);
+
+      // 直接從 UI 把這列移除，不刷新整表
+      fadeOutAndRemoveRow(taskId);
+
+      alert("✔ 配送完成！該任務已從清單移除");
+    } else {
+      // 更新狀態欄位
+      const td = document.getElementById(`status-${taskId}`);
+      if (td) td.textContent = newStatus;
+
+      alert("✔ 任務狀態已更新");
+    }
+
+  } catch (err) {
+    alert("❌ 任務更新失敗: " + err.message);
+  }
+}
+
+/* ------------------------------
+   建立配送完成的 Communication
+------------------------------ */
+async function sendCompletionCommunication(taskId) {
+  const taskRes = await fetch(`${FHIR_BASE}/Task/${taskId}`);
+  const task = await taskRes.json();
+
+  const supplyRef = task.focus?.reference;
+  if (!supplyRef) return alert("找不到 Task 的 SupplyRequest");
+
+  const supplyId = supplyRef.split("/")[1];
+
+  const srRes = await fetch(`${FHIR_BASE}/SupplyRequest/${supplyId}`);
+  const supply = await srRes.json();
+
+  const patientId = supply.requester?.reference?.split("/")[1];
+  if (!patientId) return alert("SupplyRequest 缺 requester(病人)");
+
+  const pRes = await fetch(`${FHIR_BASE}/Patient/${patientId}`);
+  const patient = await pRes.json();
+
+  const email = patient.telecom?.find(t => t.system === "email")?.value;
+  if (!email) return alert("病人沒有 email");
+
+  const volunteerId = task.owner?.reference?.split("/")[1];
+  if (!volunteerId) return alert("Task 沒有 owner");
+
+  const communication = {
+    resourceType: "Communication",
+    status: "completed",
+    sent: new Date().toISOString(),
+    sender: { reference: `Practitioner/${volunteerId}` },
+    payload: [
+      { contentString: `您的藥品配送已完成，請遵照醫囑服用。` },
+      { contentString: `📧 您的 Email: ${email}` }
+    ]
+  };
+
+  const cRes = await fetch(`${FHIR_BASE}/Communication`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(communication)
+  });
+
+  if (!cRes.ok) throw new Error("Communication 建立失敗");
+  console.log("✔ Communication 已建立");
+}
+
+/* ------------------------------ */
+document.getElementById("logoutBtn").onclick = async () => {
+  await fetch("/api/logout", { method: "POST", credentials: "include" });
+  localStorage.clear();
+  window.location.href = "/login.html";
+};
+
+loadUserInfo();
+loadMyTasks();
+/* ------------------------------ */
+</script>
+
+
+
+</body>
+</html>

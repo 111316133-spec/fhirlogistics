@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <title>申請送藥到府</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Microsoft JhengHei', '微軟正黑體', Arial, sans-serif;
+        }
+
+        body {
+            background: #eef2ff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .card {
+            max-width: 700px;
+            width: 100%;
+            background: #fff;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 6px 25px rgba(0,0,0,0.15);
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .header-icon {
+            font-size: 24px;
+            margin-right: 10px;
+            color: #4c6fff;
+        }
+
+        h2 {
+            margin-top: 0;
+            font-size: 20px;
+            color: #2c3e50;
+        }
+
+        label {
+            display: block;
+            margin-top: 12px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #34495e;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            margin-top: 4px;
+            border-radius: 8px;
+            border: 1px solid #ccd2ff;
+            font-size: 14px;
+            box-sizing: border-box;
+            background: #fafbff;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #4c6fff;
+            box-shadow: 0 0 0 2px rgba(76, 111, 255, 0.2);
+        }
+
+        .row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .btn {
+            padding: 12px 18px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            margin-top: 18px;
+            font-size: 15px;
+            transition: background-color 0.2s, transform 0.1s;
+            font-weight: 500;
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .btn-primary {
+            background: #4c6fff;
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            background: #3a5bed;
+        }
+
+        .btn-secondary {
+            background: #e0e0e0;
+            color: #333;
+            margin-left: 8px;
+        }
+
+        .btn-secondary:hover {
+            background: #d0d0d0;
+        }
+
+        .btn-success {
+            background: #27ae60;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #219653;
+        }
+
+        .btn-warning {
+            background: #f39c12;
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background: #e67e22;
+        }
+
+        .status {
+            font-size: 13px;
+            margin-top: 10px;
+            min-height: 18px;
+            padding: 8px;
+            border-radius: 4px;
+        }
+
+        .ok {
+            background: #e8f5e9;
+            color: #2e7d32;
+            border: 1px solid #c8e6c9;
+        }
+
+        .err {
+            background: #ffebee;
+            color: #c62828;
+            border: 1px solid #ffcdd2;
+        }
+
+        .loading {
+            background: #e3f2fd;
+            color: #1565c0;
+            border: 1px solid #bbdefb;
+        }
+
+        .patient-info {
+            background: #f0f4ff;
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin-top: 8px;
+            font-size: 13px;
+            border-left: 3px solid #4c6fff;
+        }
+
+        .required::after {
+            content: " *";
+            color: #e74c3c;
+        }
+
+        .info-text {
+            font-size: 12px;
+            color: #7f8c8d;
+            margin-top: 4px;
+        }
+
+        .welcome-message {
+            font-size: 16px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #f8faff;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .medication-info {
+            background: #f9f9f9;
+            padding: 10px;
+            border-radius: 6px;
+            margin-top: 5px;
+            border-left: 3px solid #4caf50;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .form-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #4c6fff;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+        }
+
+        .section-title i {
+            margin-right: 8px;
+        }
+
+        .medication-details {
+            background: #f0f8ff;
+            padding: 12px;
+            border-radius: 6px;
+            margin-top: 10px;
+            border: 1px solid #d1e7ff;
+        }
+
+        .detail-row {
+            display: flex;
+            margin-bottom: 5px;
+        }
+
+        .detail-label {
+            font-weight: 600;
+            min-width: 100px;
+            color: #2c3e50;
+        }
+
+        .detail-value {
+            color: #34495e;
+        }
+
+        @media (max-width: 480px) {
+            .row {
+                grid-template-columns: 1fr;
+            }
+            
+            .btn {
+                width: 100%;
+                margin-left: 0;
+                margin-top: 10px;
+            }
+            
+            .card {
+                padding: 16px;
+            }
+            
+            .nav-buttons {
+                flex-direction: column;
+            }
+            
+            .detail-row {
+                flex-direction: column;
+            }
+            
+            .detail-label {
+                min-width: auto;
+                margin-bottom: 2px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="header">
+            <div class="header-icon">💊</div>
+            <h2>申請配送藥品到家</h2>
+        </div>
+       <!-- === 藥品選擇區塊 === -->
+<div class="form-section">
+    <div class="section-title">
+        <i>💊</i> 選擇你的藥品
+    </div>
+    <label class="required">選擇藥品配送記錄</label>
+    <select id="supplyDeliverySelect">
+        <option value="">載入中...</option>
+    </select>
+</div>
+        <div>
+            <button class="btn btn-primary" onclick="submitRequest()">申請配送藥品到家</button>
+        </div>
+        <!-- 導航按鈕 -->
+        <div class="nav-buttons">
+            <button class="btn btn-success" onclick="goToPatientPage()">👤 個人資料管理</button>
+        </div>
+
+        <div id="status" class="status"></div>
+    </div>
+<script>
+const baseUrl = "http://203.64.84.204:8080/fhir";   // ⭐ 全域共用，只寫一次
+let currentPatientEmail = "";
+
+// 初始化病人 ID 與 email
+async function initPatientId() {
+    try {
+        const res = await fetch("/api/person", { credentials: "include" });
+        if (!res.ok) throw new Error("取得 Person 資料失敗");
+
+        const data = await res.json();
+        if (data.patientId) localStorage.setItem("patientId", data.patientId);
+        if (data.email) currentPatientEmail = data.email;
+
+        // 更新歡迎訊息
+        const welcome = document.querySelector('.welcome-message');
+        if (welcome) {
+            welcome.textContent = `歡迎 ${data.name || '使用者'} (${currentPatientEmail})`;
+        }
+
+        await loadCompletedSupplyDeliveries();
+    } catch (err) {
+        console.error("❌ 無法初始化 patientId", err);
+        document.getElementById("supplyDeliverySelect").innerHTML = `<option value="">載入失敗</option>`;
+    }
+}
+
+// 取得病人的已完成配送紀錄
+async function loadCompletedSupplyDeliveries() {
+    const select = document.getElementById("supplyDeliverySelect");
+    select.innerHTML = `<option value="">載入中...</option>`;
+
+    try {
+        const res = await fetch(`${baseUrl}/SupplyDelivery`);
+        if (!res.ok) throw new Error("無法取得 SupplyDelivery");
+
+        const data = await res.json();
+        let deliveries = data.entry?.map(e => e.resource) ?? [];
+
+        // 過濾：已完成 & identifier 包含病人 email
+        deliveries = deliveries.filter(d => 
+            d.status === "completed" &&
+            d.identifier?.some(id => id.value === currentPatientEmail)
+        );
+
+        if (deliveries.length === 0) {
+            select.innerHTML = `<option value="">尚無完成配送紀錄</option>`;
+            return;
+        }
+
+        // 生成選項
+        select.innerHTML = `<option value="">請選擇配送紀錄</option>`;
+        deliveries.forEach(d => {
+            const itemName = d.suppliedItem?.itemCodeableConcept?.text || "未知藥品";
+            const quantity = d.suppliedItem?.quantity?.value ?? 1;
+            const optionText = `${itemName} - ${quantity} 包 (${new Date(d.occurrenceDateTime).toLocaleDateString()})`;
+            select.innerHTML += `<option value="${d.id}">${optionText}</option>`;
+        });
+
+    } catch (err) {
+        console.error("❌ 取得配送紀錄失敗", err);
+        select.innerHTML = `<option value="">載入失敗</option>`;
+    }
+}
+
+// 建立或補全 SupplyRequest
+async function submitRequest() {
+    const select = document.getElementById("supplyDeliverySelect");
+    const deliveryId = select.value;
+    const statusDiv = document.getElementById("status");
+
+    if (!deliveryId) {
+        statusDiv.textContent = "請先選擇一筆配送紀錄";
+        statusDiv.className = "status err";
+        return;
+    }
+
+    try {
+        // 1️⃣ 取得配送紀錄
+        const res = await fetch(`${baseUrl}/SupplyDelivery/${deliveryId}`);
+        if (!res.ok) throw new Error("取得 SupplyDelivery 失敗");
+        const delivery = await res.json();
+
+        // 2️⃣ 取得病人資料
+        const patientId = localStorage.getItem("patientId");
+        let deliverLocation = null;
+        if (patientId) {
+            const patientRes = await fetch(`${baseUrl}/Patient/${patientId}`);
+            if (!patientRes.ok) throw new Error("取得 Patient 失敗");
+            const patient = await patientRes.json();
+
+            // 假設社區小商店存在於 patient.contact.organization
+            const contactOrgRef = patient.contact?.[0]?.organization?.reference; // 例如 "Organization/2326"
+            if (contactOrgRef) {
+                // 這裡我們用 reference 當 deliverTo
+                deliverLocation = { reference: contactOrgRef, display: patient.contact[0].organization?.display || "社區小商店" };
+            }
+        }
+
+        // 3️⃣ 組成 SupplyRequest
+        const supplyRequest = {
+            resourceType: "SupplyRequest",
+            status: "active",
+            intent: "order",
+            category: [{
+                coding: [{
+                    system: "http://terminology.hl7.org/CodeSystem/supplyrequest-category",
+                    code: "med",
+                    display: "藥品"
+                }]
+            }],
+            itemCodeableConcept: delivery.suppliedItem.itemCodeableConcept,
+            quantity: delivery.suppliedItem.quantity,
+            occurrenceDateTime: new Date().toISOString()
+        };
+
+        // 4️⃣ requester 記錄病人
+        if (patientId) {
+            supplyRequest.requester = {
+                reference: `Patient/${patientId}`,
+                display: currentPatientEmail || "病人"
+            };
+        }
+
+        // 5️⃣ deliverTo 填入病人社區小商店
+        if (deliverLocation) {
+            supplyRequest.deliverTo = deliverLocation;
+        }
+
+        // 6️⃣ 送出 SupplyRequest
+        const createRes = await fetch(`${baseUrl}/SupplyRequest`, {
+            method: "POST",
+            headers: { "Content-Type": "application/fhir+json" },
+            body: JSON.stringify(supplyRequest)
+        });
+
+        if (!createRes.ok) throw new Error("建立 SupplyRequest 失敗");
+        const result = await createRes.json();
+        console.log("✅ SupplyRequest 已建立:", result);
+
+        statusDiv.textContent = "✅ 已成功申請,請等候志工把藥品送達";
+        statusDiv.className = "status ok";
+    } catch (err) {
+        console.error("❌ 申請失敗", err);
+        statusDiv.textContent = "❌ 申請失敗，請稍後再試";
+        statusDiv.className = "status err";
+    }
+}
+
+// 頁面載入
+document.addEventListener("DOMContentLoaded", async () => {
+    await initPatientId();
+});
+
+function goToPatientPage() {
+    window.location.href = "/patient.html"; 
+}
+</script>
+
+
+</body>
+</html>

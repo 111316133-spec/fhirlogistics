@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <title>社區管理員後台</title>
+  <style>
+  /* === 基本配色 === */
+:root {
+  --primary: #6c63ff;
+  --primary-dark: #5148db;
+  --primary-light: #eef0ff;
+  --bg: #f5f7ff;
+  --text: #333;
+  --border: #d0d4e6;
+}
+
+/* === 整體風格 === */
+body {
+  font-family: 'Segoe UI', 'Microsoft JhengHei', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  margin: 0;
+  padding: 20px;
+}
+
+/* === 標題 === */
+h2 {
+  color: var(--primary);
+  margin: 20px 0 10px 0;
+  font-size: 24px;
+}
+
+hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 20px 0;
+}
+
+/* === 組織資訊區塊 === */
+.org-info {
+  background: white;
+  padding: 15px 20px;
+  border-radius: 10px;
+  margin: 15px 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  border-left: 4px solid var(--primary);
+}
+
+.org-info h3 {
+  margin: 0 0 10px 0;
+  color: var(--primary-dark);
+  font-size: 18px;
+}
+
+.org-details {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px 15px;
+  font-size: 14px;
+}
+
+.org-details strong {
+  color: #555;
+}
+
+/* === 表格區塊的卡片外框 === */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 12px;
+  margin-bottom: 30px;
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+}
+
+/* === 表頭 === */
+th {
+  padding: 14px 10px;
+  background: var(--primary);
+  color: white;
+  font-size: 15px;
+  letter-spacing: 0.5px;
+}
+
+/* === 表格文字 === */
+td {
+  padding: 12px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+tbody tr:nth-child(even) { background-color: #f8f9ff; }
+tbody tr:nth-child(odd) { background-color: #ffffff; }
+
+tbody tr:hover {
+  background-color: var(--primary-light);
+  transition: 0.2s;
+}
+
+/* === 按鈕 === */
+button {
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: 0.25s;
+  box-shadow: 0 2px 6px rgba(108, 99, 255, 0.3);
+}
+
+button:hover {
+  background: var(--primary-dark);
+  transform: translateY(-2px);
+}
+
+/* 停用按鈕的紅色版本（你可選擇是否使用） */
+button.disable-btn {
+  background: #e74c3c;
+  box-shadow: 0 2px 6px rgba(231, 76, 60, 0.3);
+}
+button.disable-btn:hover {
+  background: #c0392b;
+}
+
+/* === Select === */
+select {
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  outline: none;
+  font-size: 14px;
+}
+select:hover {
+  border-color: var(--primary);
+}
+select:focus {
+  border-color: var(--primary-dark);
+  box-shadow: 0 0 0 2px rgba(108,99,255,0.2);
+}
+
+/* === 管理員名稱 === */
+#adminName {
+  font-weight: bold;
+  color: var(--primary-dark);
+}
+
+/* === 載入中文字樣 === */
+#loading,
+.table-loading {
+  color: #666;
+  font-size: 14px;
+  padding: 10px;
+}
+  </style>
+</head>
+<body>
+
+<h2>👤 社區管理員</h2>
+
+<button id="logoutBtn" 
+        style="float:right;background:#254bf3;margin-top:-35px;">
+  登出
+</button>
+<p>目前登入的管理員：<span id="adminName">（載入中…）</span></p>
+
+<!-- 新增：組織資訊區塊 -->
+<div id="orgInfo" class="org-info" style="display:none;">
+  <h3>🏢 所屬組織</h3>
+  <div class="org-details">
+    <strong>組織名稱：</strong><span id="orgName">載入中...</span>
+    <strong>組織地址：</strong><span id="orgAddress">載入中...</span>
+    <strong>組織ID：</strong><span id="orgId">載入中...</span>
+  </div>
+</div>
+
+<hr>
+
+<h2>志工管理</h2>
+<p>管理您社區的志工帳號與啟用狀態</p>
+<table>
+  <thead>
+    <tr>
+      <th>姓名</th>
+      <th>Practitioner ID</th>
+      <th>Role ID</th>
+      <th>帳號(email)</th>
+      <th>狀態</th>
+      <th>操作</th>
+    </tr>
+  </thead>
+  <tbody id="volunteerTableBody">
+    <tr><td colspan="6">載入中...</td></tr>
+  </tbody>
+</table>
+
+<h2>配送請求清單 </h2>
+<table>
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>類別</th>
+      <th>物品名稱</th>
+      <th>數量</th>
+      <th>狀態</th>
+      <th>申請者</th>
+      <th>收件組織</th>
+      <th>操作</th>
+    </tr>
+  </thead>
+  <tbody id="supplyRequestTableBody">
+    <tr><td colspan="8">載入中...</td></tr>
+  </tbody>
+</table>
+
+<h2>配送任務清單</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Task ID</th>
+      <th>SupplyRequest</th>
+      <th>物品名稱</th>
+      <th>數量</th>
+      <th>指派志工</th>
+      <th>病人地址</th>
+      <th>任務狀態</th>
+      <th>操作</th>
+    </tr>
+  </thead>
+  <tbody id="taskTableBody">
+    <tr><td colspan="7">載入中...</td></tr>
+  </tbody>
+</table>
+
+<script>
+const FHIR_BASE = "http://203.64.84.204:8080/fhir";
+let adminPractitionerId = null;
+let currentOrgId = null;
+
+// ------------------ A. 取得管理員資訊 ------------------
+async function loadAdminInfo() {
+  const res = await fetch("/api/organizations", { credentials: "include" });
+  const list = await res.json();
+  if (!list || list.length === 0) { 
+    alert("⚠ 無法取得登入資訊"); 
+    return; 
+  }
+
+  const admin = list[0];
+  adminPractitionerId = admin.practitionerId;
+  currentOrgId = admin.orgId;
+
+  // 顯示管理員姓名
+  const name = await getPersonName(adminPractitionerId);
+  document.getElementById("adminName").innerText = `${name}（${admin.roleDisplay || ""}）`;
+
+  // 載入組織資訊
+  await loadOrganizationInfo(currentOrgId);
+
+  // 載入其他資料
+  loadVolunteers();
+  loadCommunitySupplyRequests();
+  loadTasks();
+}
+
+// ------------------ 新增：載入組織資訊 ------------------
+async function loadOrganizationInfo(orgId) {
+  try {
+    const res = await fetch(`${FHIR_BASE}/Organization/${orgId}`);
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}`);
+    }
+    
+    const org = await res.json();
+    const orgInfoDiv = document.getElementById("orgInfo");
+    
+    // 顯示組織名稱
+    document.getElementById("orgName").textContent = org.name || "未命名";
+    
+    // 顯示組織ID
+    document.getElementById("orgId").textContent = orgId;
+    
+    // 顯示組織地址
+    let addressText = "無地址資訊";
+    if (org.address && org.address.length > 0) {
+      const addr = org.address[0];
+      
+      // 優先使用 text 欄位
+      if (addr.text) {
+        addressText = addr.text;
+      } else {
+        // 組合地址各部份
+        const parts = [];
+        if (addr.line && addr.line.length > 0) {
+          parts.push(addr.line.join(" "));
+        }
+        if (addr.city) parts.push(addr.city);
+        if (addr.district) parts.push(addr.district);
+        if (addr.state) parts.push(addr.state);
+        if (addr.country) parts.push(addr.country);
+        if (addr.postalCode) parts.push(addr.postalCode);
+        
+        addressText = parts.join(", ");
+      }
+    }
+    
+    document.getElementById("orgAddress").textContent = addressText;
+    
+    // 顯示組織資訊區塊
+    orgInfoDiv.style.display = "block";
+    
+  } catch (error) {
+    console.error("載入組織資訊失敗:", error);
+    document.getElementById("orgName").textContent = "載入失敗";
+    document.getElementById("orgAddress").textContent = "無法取得地址";
+    document.getElementById("orgId").textContent = orgId;
+    document.getElementById("orgInfo").style.display = "block";
+  }
+}
+
+// ------------------ B. 取得 Person 名稱 ------------------
+async function getPersonName(practitionerId) {
+  try {
+    const res = await fetch(`${FHIR_BASE}/Person?link=Practitioner/${practitionerId}`);
+    if (!res.ok) return "未命名";
+    const bundle = await res.json();
+    const person = bundle.entry?.[0]?.resource;
+    return person?.name?.[0]?.text || "未命名";
+  } catch {
+    return "錯誤";
+  }
+}
+
+// ------------------ C. 志工管理 ------------------
+async function loadVolunteers() {
+  if (!currentOrgId) return;
+  const tbody = document.getElementById("volunteerTableBody");
+  tbody.innerHTML = `<tr><td colspan="6">載入中...</td></tr>`;
+
+  const url = `${FHIR_BASE}/PractitionerRole?organization=Organization/${currentOrgId}&_include=PractitionerRole:practitioner`;
+  const res = await fetch(url);
+  const bundle = await res.json();
+
+  const practitioners = {};
+  const roles = [];
+  bundle.entry?.forEach(e => {
+    if (e.resource.resourceType === "PractitionerRole") roles.push(e.resource);
+    if (e.resource.resourceType === "Practitioner") practitioners[e.resource.id] = e.resource;
+  });
+
+  const volunteerRoles = roles.filter(r =>
+    r.code?.some(c => c.coding?.some(cd => cd.code === "CommunityVolunteer"))
+  );
+
+  if (!volunteerRoles.length) {
+    tbody.innerHTML = `<tr><td colspan="6">目前沒有志工</td></tr>`;
+    return;
+  }
+
+  const list = [];
+  for (const role of volunteerRoles) {
+    const pid = role.practitioner.reference.split("/")[1];
+    const p = practitioners[pid];
+    const name = await getPersonName(pid);
+    list.push({
+      name, practitionerId: pid, roleId: role.id,
+      email: p?.identifier?.find(i=>i.system==="http://example.org/fhir/email")?.value || "—",
+      active: role.active !== false
+    });
+  }
+
+  tbody.innerHTML = "";
+  list.forEach(v => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${v.name}</td>
+      <td>${v.practitionerId}</td>
+      <td>${v.roleId}</td>
+      <td>${v.email}</td>
+      <td>${v.active ? "啟用" : "停用"}</td>
+      <td>
+        <button onclick="toggleVolunteer('${v.roleId}', ${v.active})">
+          ${v.active ? "停用" : "啟用"}
+        </button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+async function toggleVolunteer(roleId, isActive) {
+  if (!confirm(`是否要 ${isActive?"停用":"啟用"} 這位志工？`)) return;
+  const res = await fetch(`${FHIR_BASE}/PractitionerRole/${roleId}`);
+  const role = await res.json();
+  role.active = !isActive;
+  await fetch(`${FHIR_BASE}/PractitionerRole/${roleId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/fhir+json" },
+    body: JSON.stringify(role)
+  });
+  loadVolunteers();
+}
+
+
+// ------------------ D. SupplyRequest ------------------
+async function loadCommunitySupplyRequests() {
+  if (!currentOrgId) return;
+  const tbody = document.getElementById("supplyRequestTableBody");
+  tbody.innerHTML = `<tr><td colspan="8">載入中...</td></tr>`;
+
+  const patientId = localStorage.getItem("patientId");
+  let url = `${FHIR_BASE}/SupplyRequest?_count=200`;
+  if (patientId) url += `&requester=Patient/${patientId}`;
+
+  const res = await fetch(url);
+  const bundle = await res.json();
+  const list = bundle.entry?.map(e => e.resource)
+    .filter(sr => sr.deliverTo?.reference === `Organization/${currentOrgId}`)
+    .sort((a, b) => (b.id || '').localeCompare(a.id || ''))
+    || [];
+  if (!list.length) {
+    tbody.innerHTML = `<tr><td colspan="8">沒有配送請求清單</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = "";
+
+  for (const sr of list) {
+    let requesterText = "-";
+    if (sr.requester?.reference) {
+      try {
+        const patientRes = await fetch(`${FHIR_BASE}/${sr.requester.reference}`);
+        const patient = await patientRes.json();
+        const name = patient.name?.[0]?.text || "-";
+        const email = patient.telecom?.find(t => t.system === "email")?.value || "-";
+        requesterText = `${name} (${email})`;
+      } catch {
+        requesterText = sr.requester.reference;
+      }
+    }
+
+    const tr = document.createElement("tr");
+  tr.innerHTML = `
+  <td>${sr.id}</td>
+  <td>${sr.category?.coding?.[0]?.display || "-"}</td>
+  <td>${sr.itemCodeableConcept?.text || "-"}</td>
+  <td>${sr.quantity?.value || "-"} ${sr.quantity?.unit || ""}</td>
+  <td>${sr.status || "-"}</td>
+  <td>${requesterText}</td>
+  <td>${sr.deliverTo?.display || "-"}</td>
+  <td><button onclick="createTaskFromSupplyRequest('${sr.id}')">建立任務</button></td>
+`;
+
+    tbody.appendChild(tr);
+  }
+}
+document.getElementById("logoutBtn").onclick = async () => {
+  await fetch("/api/logout", {
+    method: "POST",
+    credentials: "include"
+  });
+
+  localStorage.clear();  // 如果你有儲存 email / orgId
+  window.location.href = "/login.html"; // 回首頁或登入頁
+};
+
+
+// ------------------ E. Task ------------------
+function parseTaskMedication(task) {
+  let medName="-", medQty="-";
+  task.input?.forEach(input=>{
+    const code = input.type?.coding?.[0]?.code;
+    if(code==="medication") medName = input.valueCodeableConcept?.text||input.valueCodeableConcept?.coding?.[0]?.display||"-";
+    if(code==="medication-quantity") medQty = input.valueQuantity?.value||"-";
+  });
+  return {medName, medQty};
+}
+async function getPatientAddressByReference(patientRef) {
+  if (!patientRef) return "-";
+
+  try {
+    const res = await fetch(`${FHIR_BASE}/${patientRef}`);
+    const patient = await res.json();
+
+    const addr = patient.address?.[0];
+    if (!addr) return "-";
+
+    return (
+      addr.text ||
+      `${addr.country || ""}${addr.state || ""}${addr.city || ""}${addr.district || ""}${addr.line?.join("") || ""}`
+    );
+  } catch {
+    return "-";
+  }
+}
+
+
+async function loadTasks() {
+  if(!adminPractitionerId) return;
+  const tbody = document.getElementById("taskTableBody");
+  tbody.innerHTML = `<tr><td colspan="7">載入中...</td></tr>`;
+
+  // 取得 Task
+  const res = await fetch(`${FHIR_BASE}/Task?requester=Practitioner/${adminPractitionerId}&_count=100`);
+  const bundle = await res.json();
+  if(!bundle.entry || !bundle.entry.length){
+    tbody.innerHTML=`<tr><td colspan="7">沒有任務</td></tr>`;
+    return;
+  }
+
+  // 取得志工列表 (PracitionerRole)
+  const couriers = [];
+  const roleRes = await fetch(`${FHIR_BASE}/PractitionerRole?organization=Organization/${currentOrgId}&_count=200`);
+  const roleBundle = await roleRes.json();
+
+  for (const e of roleBundle.entry || []) {
+    const role = e.resource;
+    if(role.code?.some(c => c.coding?.some(cd => cd.code === "CommunityVolunteer"))) {
+      const pid = role.practitioner.reference.split("/")[1];
+      let name = pid; // fallback
+
+      try {
+        const personRes = await fetch(`${FHIR_BASE}/Person?link=Practitioner/${pid}`);
+        const personBundle = await personRes.json();
+        const person = personBundle.entry?.[0]?.resource;
+        if(person?.name?.length) {
+          const n = person.name[0];
+          name = n.text || ((n.given?.join(" ") || "") + (n.family ? " " + n.family : ""));
+        }
+      } catch {
+        // 保留 pid
+      }
+
+      couriers.push({ id: pid, name });
+    }
+  }
+
+  tbody.innerHTML = "";
+
+  for (const e of bundle.entry) {
+    const task = e.resource;
+    const {medName, medQty} = parseTaskMedication(task);
+
+    // ➤ 取得 SupplyRequest 的 ID
+    const srRef = task.focus?.reference; // SupplyRequest/xxxx
+    let patientEmail = "-";
+    let patientAddress = "-";
+
+    if (srRef) {
+  try {
+    const supplyReqRes = await fetch(`${FHIR_BASE}/${srRef}`);
+    const supplyReq = await supplyReqRes.json();
+
+    // 👍 SupplyRequest.requester 就是 Patient/xxx
+    const patientRef = supplyReq.requester?.reference;
+
+    patientAddress = await getPatientAddressByReference(patientRef);
+  } catch {
+    patientAddress = "-";
+  }
+    }
+
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${task.id}</td>
+      <td>${srRef || "-"}</td>
+      <td>${medName}</td>
+      <td>${medQty}</td>
+
+      <td>
+        <select id="volunteer-${task.id}">
+          ${couriers.map(c => `<option value="${c.id}">${c.name} (${c.id})</option>`).join("")}
+        </select>
+      </td>
+
+      <td>${patientAddress}</td>
+
+      <td>${task.status || "-"}</td>
+
+      <td>
+        <button onclick="assignVolunteerToTask('${task.id}', document.getElementById('volunteer-${task.id}').value)">
+          指派
+        </button>
+      </td>
+    `;
+
+    tbody.appendChild(tr);
+  }
+}
+
+
+async function assignVolunteerToTask(taskId, practitionerId){
+  const taskRes = await fetch(`${FHIR_BASE}/Task/${taskId}`);
+  const task = await taskRes.json();
+  const hasOwner = !!task.owner;
+  const ops = [{ op: hasOwner?"replace":"add", path:"/owner", value:{reference:`Practitioner/${practitionerId}`}}];
+  const res = await fetch(`${FHIR_BASE}/Task/${taskId}`, {
+    method:"PATCH", headers:{"Content-Type":"application/json-patch+json"}, body:JSON.stringify(ops)
+  });
+  if(!res.ok){ alert("指派失敗"); return; }
+  alert("✔ 已指派志工");
+  loadTasks();
+}
+
+function viewTaskDetails(taskId){
+  window.open(`${FHIR_BASE}/Task/${taskId}`,"_blank");
+}
+
+async function createTaskFromSupplyRequest(supplyRequestId){
+  const supplyRes = await fetch(`${FHIR_BASE}/SupplyRequest/${supplyRequestId}`);
+  const supply = await supplyRes.json();
+
+  const taskResource = {
+    resourceType:"Task",
+    status:"accepted",
+    intent:"order",
+    code:{ coding:[{ system:"http://example.org/task-code", code:"deliver-item", display:"配送物品" }] },
+    focus:{ reference:`SupplyRequest/${supplyRequestId}` },
+    requester:{ reference:`Practitioner/${adminPractitionerId}` },
+    authoredOn:new Date().toISOString(),
+    executionPeriod:{ start:new Date().toISOString(), end:new Date(Date.now()+24*3600*1000).toISOString() },
+    note:[{text:"請依照需求配送"}],
+    input:[]
+  };
+
+  if(supply.itemCodeableConcept) taskResource.input.push({type:{coding:[{system:"http://hl7.org/fhir/task-input-type", code:"medication", display:"Item"}]}, valueCodeableConcept:supply.itemCodeableConcept});
+  if(supply.quantity) taskResource.input.push({type:{coding:[{system:"http://hl7.org/fhir/task-input-type", code:"medication-quantity", display:"Quantity"}]}, valueQuantity:supply.quantity});
+
+  const res = await fetch(`${FHIR_BASE}/Task`, {method:"POST", headers:{"Content-Type":"application/fhir+json"}, body:JSON.stringify(taskResource)});
+  if(!res.ok){ alert("建立 Task 失敗"); return; }
+  alert(`✔ 任務已建立 (SupplyRequest/${supplyRequestId})`);
+  loadTasks();
+}
+
+// ------------------ F. 啟動 ------------------
+window.onload = loadAdminInfo;
+</script>
+
+</body>
+</html>

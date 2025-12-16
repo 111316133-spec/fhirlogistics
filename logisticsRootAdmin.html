@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>物流分站管理</title>
+     <style>
+     /* --- 整體背景：紫藍漸層 --- */
+
+body {
+  font-family: Arial, sans-serif;
+  background-color: #f5f7ff;
+  color: #333333;
+  padding: 20px;
+}
+
+h1 {
+  color: #3a3aff;
+  margin-bottom: 15px;
+}
+
+h2, h3 {
+  color: #4b4bff;
+  margin-bottom: 10px;
+}
+
+.org-info-box {
+  background-color: #ffffff;
+  padding: 15px;
+  border: 1px solid #d0d4e6;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.card {
+  background-color: #ffffff;
+  padding: 15px;
+  border: 1px solid #d0d4e6;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+label {
+  display: block;
+  margin: 8px 0 4px;
+}
+
+input[type="text"] {
+  width: 100%;
+  padding: 6px 10px;
+  margin-bottom: 10px;
+  border: 1px solid #d0d4e6;
+  border-radius: 4px;
+}
+
+button {
+  background-color: #6c63ff;
+  color: #ffffff;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+button:hover {
+  background-color: #5750d1;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+th, td {
+  padding: 10px;
+  text-align: left;
+  border: 1px solid #d0d4e6;
+}
+
+th {
+  background-color: #6c63ff;
+  color: #ffffff;
+}
+
+tbody tr:nth-child(even) {
+  background-color: #eef0ff;
+}
+
+tbody tr:nth-child(odd) {
+  background-color: #ffffff;
+}
+
+#errorMsg {
+  color: #ff4d4d;
+}
+
+#createMsg {
+  color: #28a745;
+}
+</style>
+
+    </style>
+</head>
+<body>
+   <div style="text-align:right; margin-bottom:15px;">
+   
+    <button id="logoutBtn">登出</button>
+  </div>
+    <h1>物流公司分站管理</h1>
+    
+    <div class="org-info-box">
+        <p><strong>總公司 ID：</strong><span id="parentOrgId"></span></p>
+        <p><strong>總公司名稱：</strong><span id="parentOrgName"></span></p>
+        <p><strong>總公司地址：</strong><span id="parentOrgAddress"></span></p>
+    </div>
+    
+   <div class="card">
+  <h3>建立物流分站</h3>
+
+  <label>分站編號 </label>
+  <input type="text" id="branchCode" placeholder="例如：NORTH001" />
+
+  <label>分站名稱</label>
+  <input type="text" id="branchName" placeholder="例如：北區物流分站" />
+
+
+  <label>分站地址</label>
+  <input type="text" id="branchAddress" placeholder="例如：台北市中山區松江路 123 號" />
+
+  <button id="createBtn">建立分站</button>
+  <p id="createMsg"></p>
+  <p id="errorMsg"></p>
+</div>
+
+    <!-- 查詢分站 -->
+    <div class="card">
+        <h3>查詢物流分站（依公司）</h3>
+        <label>總公司 ID</label>
+        <input type="text" id="searchParent" placeholder="輸入主公司 ID" />
+        <button id="searchBtn">查詢</button>
+        
+        <!-- 顯示分站表格 -->
+        <table>
+            <thead>
+                <tr>
+                    <th>分站 ID</th>
+                    <th>分站編號</th>
+                    <th>名稱</th>
+                    <th>active</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="branchTable"></tbody>
+        </table>
+    </div>
+    
+    <div class="card">
+        <h3>管理與審核物流人員清單</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Role ID</th>
+                    <th>員工姓名</th>
+                    <th>員工Email</th>
+                    <th>職稱</th>
+                    <th>active</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="allRolesTable"></tbody>
+        </table>
+    </div>
+    
+   <h2>物流任務列表</h2>
+<p>顯示：同物流的管理員 → 指派的配送員任務</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>任務 ID</th>
+      <th>狀態</th>
+      <th>物流管理員</th>
+      <th>物流配送員</th>
+   
+    </tr>
+  </thead>
+  <tbody id="taskList"></tbody>
+</table>
+
+<script>
+/*
+  使用說明：
+  - 此檔案為「前端直連 FHIR」版本，會直接對 FHIR Server 發出請求。
+  - FHIR Server： http://203.64.84.204:8080/fhir
+  - 若瀏覽器出現 CORS 錯誤（瀏覽器阻擋跨域），請改用 proxy 或後端轉發。
+*/
+const FHIR_BASE = "http://203.64.84.204:8080/fhir";
+
+let MAIN_ORG_ID = "";
+
+document.addEventListener('DOMContentLoaded', () => {
+  // 從 localStorage 讀取 MAIN_ORG_ID
+  MAIN_ORG_ID = localStorage.getItem('MAIN_ORG_ID') || "";
+  console.log("MAIN_ORG_ID =", MAIN_ORG_ID);
+
+  loadMainOrgInfo();
+  loadBranches();
+
+  document.getElementById('createBtn').addEventListener('click', createBranch);
+  document.getElementById('searchBtn').addEventListener('click', loadBranches);
+});
+
+// ⭐ 讀取總公司資訊
+async function loadMainOrgInfo() {
+  try {
+    if (!MAIN_ORG_ID) {
+      showError("⚠️ 無法取得主公司資訊（MAIN_ORG_ID 為空）");
+      return;
+    }
+
+    const res = await fetch(`${FHIR_BASE}/Organization/${MAIN_ORG_ID}`);
+    if (!res.ok) throw new Error("FHIR 查詢失敗");
+
+    const org = await res.json();
+    console.log("主公司資料：", org);
+
+    document.getElementById('parentOrgId').textContent = org.id;
+    document.getElementById('parentOrgName').textContent = org.name || "（未設定名稱）";
+
+  
+ // 處理地址：只顯示 addr.text
+const addr = org.address?.[0];
+const fullAddr = addr?.text || "（未設定地址）";
+
+document.getElementById('parentOrgAddress').textContent = fullAddr;
+  } catch (err) {
+    console.error(err);
+    showError("載入總公司資料錯誤：" + err.message);
+  }
+}
+
+
+document.addEventListener('DOMContentLoaded', () => {
+  
+  const searchInput = document.getElementById('searchParent');
+
+  // 若 localStorage 有值則使用（可在登入時存）
+  if (localStorage.getItem('MAIN_ORG_ID')) {
+    MAIN_ORG_ID = localStorage.getItem('MAIN_ORG_ID');
+  }
+
+  
+  searchInput.value = MAIN_ORG_ID;
+
+  // 綁定按鈕
+  document.getElementById('createBtn').addEventListener('click', createBranch);
+  document.getElementById('searchBtn').addEventListener('click', loadBranches);
+loadMainOrgInfo();
+  // 頁面載入時自動查詢一次
+  loadBranches();
+});
+
+function showError(msg) {
+  const el = document.getElementById('errorMsg');
+  el.textContent = msg || '';
+  if (msg) setTimeout(() => el.textContent = '', 5000);
+}
+
+function showCreateMsg(msg) {
+  const el = document.getElementById('createMsg');
+  el.textContent = msg || '';
+  if (msg) setTimeout(() => el.textContent = '', 5000);
+}
+
+// 建立分站
+async function createBranch() {
+  showError('');
+  const code = document.getElementById('branchCode').value.trim();
+  const name = document.getElementById('branchName').value.trim();
+  const address = document.getElementById('branchAddress').value.trim(); 
+  const parent = String(MAIN_ORG_ID);
+
+  // --- 驗證必填 ---
+  if (!code || !name || !parent||!address) {
+    showError('請填寫：總公司 ID、分站編號、分站名稱、地址');
+    return;
+  }
+
+  // --- 驗證分站代碼格式 (8 位數字) ---
+  if (!/^\d{8}$/.test(code)) {
+    showError('分站代碼必須是 8 位數字');
+    return;
+  }
+
+  try {
+    // -------------------------------------------
+    // ⭐ 防重複：查詢所有 identifier 是否已存在
+    // -------------------------------------------
+    const identifierList = [
+      { system: "http://example.org/fhir/branch-code", value: code }
+      // 如你日後還有其他 identifier，可在此加入更多
+    ];
+
+    for (const idf of identifierList) {
+      const checkUrl =
+        `${FHIR_BASE}/Organization?identifier=${idf.system}|${idf.value}`;
+      const checkRes = await fetch(checkUrl);
+      const checkData = await checkRes.json();
+
+      if (checkData.entry && checkData.entry.length > 0) {
+        showError(`identifier 重複：${idf.value}`);
+        return;
+      }
+    }
+
+    // --- 建立分站 ---
+    const body = {
+      resourceType: "Organization",
+      active: true,
+      identifier: identifierList.map(x => ({
+        system: x.system,
+        value: x.value
+      })),
+      name: name,
+      type: [{
+        coding: [{
+          system: "http://example.org/fhir/org-type",
+          code: "logistics-branch",
+          display: "Logistics Branch"
+        }]
+      }],
+      partOf: { reference: `Organization/${parent}` },
+      address: address
+        ? [{
+            type: "physical",
+            text: address,
+            line: [address]
+          }]
+        : undefined
+    };
+
+    const res = await fetch(`${FHIR_BASE}/Organization`, {
+      method: "POST",
+      headers: { "Content-Type": "application/fhir+json" },
+      body: JSON.stringify(body)
+    });
+
+    if (!res.ok) {
+      const err = await res.text();
+      showError('建立失敗: ' + (err || res.status));
+      return;
+    }
+
+    const data = await res.json();
+    showCreateMsg(`✅ 已建立分站，ID=${data.id}`);
+
+    // --- 清空 ---
+    document.getElementById('branchCode').value = '';
+    document.getElementById('branchName').value = '';
+    document.getElementById('branchAddress').value = '';
+
+    await loadBranches();
+
+  } catch (err) {
+    console.error(err);
+    showError('建立分站發生錯誤: ' + err.message);
+  }
+}
+document.getElementById("logoutBtn").onclick = async () => {
+  await fetch("/api/logout", {
+    method: "POST",
+    credentials: "include"
+  });
+
+  localStorage.clear();  // 如果你有儲存 email / orgId
+  window.location.href = "/login.html"; // 回首頁或登入頁
+};
+
+
+
+
+// 查詢分站（type=logistics-branch & partOf=MAIN）
+async function loadBranches() {
+  showError('');
+  const parent = document.getElementById('searchParent').value.trim() || MAIN_ORG_ID;
+  if (!parent) {
+    showError('請輸入總公司 ID 後再查詢');
+    return;
+  }
+
+  try {
+    // FHIR query: type=logistics-branch & partof=Organization/{id}
+    const q = `${FHIR_BASE}/Organization?type=${encodeURIComponent('http://example.org/fhir/org-type|logistics-branch')}&partof=Organization/${encodeURIComponent(parent)}&_count=100`;
+    const res = await fetch(q, { headers: { Accept: 'application/fhir+json' } });
+
+    if (!res.ok) {
+      const txt = await res.text();
+      showError('查詢失敗: ' + (txt || res.status));
+      return;
+    }
+     await loadMainOrgInfo();
+
+    const bundle = await res.json();
+    const tbody = document.getElementById('branchTable');
+    tbody.innerHTML = '';
+
+    if (!bundle.entry || bundle.entry.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="5">無資料</td></tr>`;
+      return;
+    }
+
+    bundle.entry.forEach(e => {
+      const org = e.resource;
+      const id = org.id;
+      const code = (org.identifier || []).find(i => i.system && i.system.includes('branch-code'))?.value || (org.identifier?.[0]?.value || '');
+      const name = org.name || '';
+      const active = !!org.active;
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${id}</td>
+        <td>${escapeHtml(code)}</td>
+        <td>${escapeHtml(name)}</td>
+        <td class="${active ? 'active' : 'inactive'}">${active}</td>
+        <td>
+          <button class="toggle-btn" onclick="toggleActive('${id}', ${active})">${active ? '停用' : '啟用'}</button>
+        </td>`;
+      tbody.appendChild(tr);
+    });
+
+  } catch (err) {
+    console.error(err);
+    showError('查詢分站發生錯誤: ' + err.message);
+  }
+}
+
+// 切換 active（PUT 整個 Organization）
+async function toggleActive(orgId, currentActive) {
+  showError('');
+  try {
+    const res = await fetch(`${FHIR_BASE}/Organization/${encodeURIComponent(orgId)}`, { headers: { Accept: 'application/fhir+json' } });
+    if (!res.ok) {
+      const txt = await res.text();
+      showError('讀取 Organization 失敗: ' + (txt || res.status));
+      return;
+    }
+
+    const org = await res.json();
+    org.active = !currentActive;
+
+    const updateRes = await fetch(`${FHIR_BASE}/Organization/${encodeURIComponent(orgId)}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/fhir+json" },
+      body: JSON.stringify(org)
+    });
+
+    if (!updateRes.ok) {
+      const txt = await updateRes.text();
+      showError('更新失敗: ' + (txt || updateRes.status));
+      return;
+    }
+
+    await loadBranches();
+  } catch (err) {
+    console.error(err);
+    showError('更新 active 發生錯誤: ' + err.message);
+  }
+}
+
+// 小工具：逃逸 HTML（避免在表格顯示時注入）
+function escapeHtml(unsafe) {
+  if (!unsafe) return '';
+  return String(unsafe).replace(/[&<>"'`=\/]/g, function (s) {
+    return ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;',
+      '/': '&#47;',
+      '`': '&#96;',
+      '=': '&#61;'
+    })[s];
+  });
+}
+/** =============================
+ *  查詢未審核 PractitionerRole
+ * ============================= */
+async function loadPendingRoles() {
+  const parentOrgId = MAIN_ORG_ID;
+  const tbody = document.getElementById('pendingRoleTable');
+  tbody.innerHTML = '';
+
+  if (!parentOrgId) {
+    tbody.innerHTML = `<tr><td colspan="5">⚠️ 無法取得 MAIN_ORG_ID</td></tr>`;
+    return;
+  }
+
+  try {
+    const url = `${FHIR_BASE}/PractitionerRole?organization=Organization/${parentOrgId}&active=false&_count=200`;
+
+    const res = await fetch(url, { headers: { Accept: "application/fhir+json" } });
+    if (!res.ok) {
+      const txt = await res.text();
+      tbody.innerHTML = `<tr><td colspan="5">查詢失敗：${txt}</td></tr>`;
+      return;
+    }
+
+    const bundle = await res.json();
+    if (!bundle.entry || bundle.entry.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="5">無待審核資料</td></tr>`;
+      return;
+    }
+
+    bundle.entry.forEach(e => {
+      const role = e.resource;
+      const id = role.id;
+      const practitioner = role.practitioner?.reference || "未知";
+      const codeObj = role.code?.[0]?.coding?.[0];
+      const roleName = codeObj?.display || codeObj?.code || "未命名";
+
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${id}</td>
+        <td>${practitioner}</td>
+        <td>${roleName}</td>
+        <td class="inactive">false</td>
+        <td>
+          <button id="approve-btn-${id}" class="toggle-btn" onclick="approveRole('${id}')">
+            核准
+          </button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+  } catch (err) {
+    console.error(err);
+    tbody.innerHTML = `<tr><td colspan="5">錯誤：${err.message}</td></tr>`;
+  }
+}
+async function getPersonInfoByPractitioner(practitionerRef) {
+  if (!practitionerRef) return { name: "未知", email: "-" };
+
+  const practitionerId = practitionerRef.replace("Practitioner/", "");
+
+  try {
+    // 1️⃣ 找 Person
+    const personRes = await fetch(`${FHIR_BASE}/Person?link=Practitioner/${practitionerId}`);
+    const personBundle = await personRes.json();
+    let name = "未知";
+
+    if (personBundle.entry && personBundle.entry.length > 0) {
+      const person = personBundle.entry[0].resource;
+      if (person.name && person.name.length > 0) {
+        name = person.name[0].text || `${person.name[0].family || ""}${person.name[0].given?.join("") || ""}`;
+      }
+    }
+
+    // 2️⃣ 取得 Practitioner identifier (email)
+    const pracRes = await fetch(`${FHIR_BASE}/Practitioner/${practitionerId}`);
+    const prac = await pracRes.json();
+    let email = "-";
+    if (prac.identifier) {
+      const emailId = prac.identifier.find(id => id.system?.includes("email"));
+      if (emailId) email = emailId.value || "-";
+    }
+
+    return { name, email };
+  } catch (err) {
+    console.error(err);
+    return { name: "未知", email: "-" };
+  }
+}
+
+
+
+async function loadAllRoles() {
+  const tbody = document.getElementById('allRolesTable');
+  tbody.innerHTML = '';
+
+  if (!MAIN_ORG_ID) {
+    tbody.innerHTML = `<tr><td colspan="5">⚠️ 無法取得 MAIN_ORG_ID</td></tr>`;
+    return;
+  }
+
+  try {
+    const url = `${FHIR_BASE}/PractitionerRole?organization=Organization/${MAIN_ORG_ID}&_count=200`;
+    const res = await fetch(url, { headers: { Accept: "application/fhir+json" } });
+
+    if (!res.ok) {
+      const txt = await res.text();
+      tbody.innerHTML = `<tr><td colspan="5">查詢失敗：${txt}</td></tr>`;
+      return;
+    }
+
+    const bundle = await res.json();
+    if (!bundle.entry || bundle.entry.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="5">無資料</td></tr>`;
+      return;
+    }
+
+  bundle.entry.forEach(async e => {  // 這裡改成 async
+  const role = e.resource;
+  const id = role.id;
+  const practitionerRef = role.practitioner?.reference || "未知";
+
+  // 呼叫函式取得姓名與 email
+  const { name, email } = await getPersonInfoByPractitioner(practitionerRef);
+
+  const codeObj = role.code?.[0]?.coding?.[0];
+  const roleName = codeObj?.display || codeObj?.code || "未命名";
+  const active = !!role.active;
+
+  const tr = document.createElement("tr");
+  tr.innerHTML = `
+    <td>${id}</td>
+    <td>${name}</td>
+    <td>${email}</td>
+    <td>${roleName}</td>
+    <td class="${active ? 'active' : 'inactive'}">${active}</td>
+    <td>
+      <button class="toggle-btn" onclick="toggleRoleActive('${id}', ${active})">
+        ${active ? '停用' : '啟用'}
+      </button>
+    </td>
+  `;
+  tbody.appendChild(tr);
+});
+
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="5">錯誤：${err.message}</td></tr>`;
+  }
+}
+async function toggleRoleActive(id, currentActive) {
+  const url = `${FHIR_BASE}/PractitionerRole/${id}`;
+
+  try {
+    // 讀取舊資料
+    const getRes = await fetch(url, { headers: { Accept: "application/fhir+json" } });
+    if (!getRes.ok) {
+      alert("讀取 PractitionerRole 失敗");
+      return;
+    }
+
+    const role = await getRes.json();
+    role.active = !currentActive;
+
+    // PUT 更新
+    const putRes = await fetch(url, {
+      method: "PUT",
+      headers: { "Content-Type": "application/fhir+json" },
+      body: JSON.stringify(role)
+    });
+
+    if (!putRes.ok) {
+      const t = await putRes.text();
+      alert("更新失敗：\n" + t);
+      return;
+    }
+
+    // 更新畫面
+    await loadAllRoles();
+    //await loadPendingRoles(); // 因為核准的可能會從待審核消失
+
+  } catch (err) {
+    alert("錯誤：" + err.message);
+  }
+}
+async function getPersonNameByPractitioner(practitionerRef) {
+  if (!practitionerRef) return "未知";
+
+  const pid = practitionerRef.replace("Practitioner/", "");
+
+  const url = `${FHIR_BASE}/Person?link=Practitioner/${pid}`;
+
+  try {
+    const res = await fetch(url);
+    const bundle = await res.json();
+
+    if (!bundle.entry || bundle.entry.length === 0) {
+      return "未知";
+    }
+
+    const person = bundle.entry[0].resource;
+
+    // usual: person.name[0].text
+    if (person.name && person.name.length > 0) {
+      return (
+        person.name[0].text ||
+        `${person.name[0].family || ""}${person.name[0].given?.join("") || ""}`
+      );
+    }
+
+    return "未知";
+
+  } catch (err) {
+    return "未知";
+  }
+}
+async function loadTasksByOrganization() {
+  const tbody = document.getElementById("taskList");
+  tbody.innerHTML = `<tr><td colspan="6">載入中...</td></tr>`;
+
+  if (!MAIN_ORG_ID) {
+    tbody.innerHTML = `<tr><td colspan="6">⚠️ 無 MAIN_ORG_ID</td></tr>`;
+    return;
+  }
+
+  try {
+    /* Step 1 — 查 organization 下所有 PractitionerRole */
+    const roleUrl = `${FHIR_BASE}/PractitionerRole?organization=Organization/${MAIN_ORG_ID}&_count=200`;
+    const roleRes = await fetch(roleUrl);
+    const roleBundle = await roleRes.json();
+
+    if (!roleBundle.entry || roleBundle.entry.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6">⚠️ 此組織沒有任何員工</td></tr>`;
+      return;
+    }
+
+    // 找出所有從屬於這個組織的 Practitioner IDs
+    const practitionerIds = roleBundle.entry
+      .map(e => e.resource.practitioner?.reference?.replace("Practitioner/", ""))
+      .filter(id => id);
+
+    if (practitionerIds.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6">⚠️ 找不到 Practitioner</td></tr>`;
+      return;
+    }
+
+    /* Step 2 — 查 Task（requester 或 owner 屬於這些 practitioner） */
+    const tasks = [];
+
+    for (const pid of practitionerIds) {
+      const taskUrl = `${FHIR_BASE}/Task?owner=Practitioner/${pid}&_count=100`;
+      const taskUrl2 = `${FHIR_BASE}/Task?requester=Practitioner/${pid}&_count=100`;
+
+      const res1 = await fetch(taskUrl);
+      const res2 = await fetch(taskUrl2);
+
+      const b1 = await res1.json();
+      const b2 = await res2.json();
+
+      if (b1.entry) tasks.push(...b1.entry.map(x => x.resource));
+      if (b2.entry) tasks.push(...b2.entry.map(x => x.resource));
+    }
+
+    /* Step 3 — 放到畫面 */
+    tbody.innerHTML = "";
+
+    if (tasks.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6">（無任務）</td></tr>`;
+      return;
+    }
+
+   tasks.forEach(async task => {
+  const requesterRef = task.requester?.reference || "未知";
+  const ownerRef = task.owner?.reference || "未指派";
+
+  const requesterInfo = await getPersonInfoByPractitioner(requesterRef);
+  const ownerInfo = await getPersonInfoByPractitioner(ownerRef);
+
+  const tr = document.createElement("tr");
+  tr.innerHTML = `
+    <td>${task.id}</td>
+    <td>${task.status}</td>
+    <td>${requesterInfo.name} (${requesterInfo.email})</td>
+    <td>${ownerInfo.name} (${ownerInfo.email})</td>
+  `;
+  tbody.appendChild(tr);
+});
+
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="6">錯誤：${err.message}</td></tr>`;
+  }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  setTimeout(() => {
+   loadTasksByOrganization();
+      loadAllRoles();
+  }, 500); // 等 MAIN_ORG_ID 讀完
+});
+</script>
+
+</body>
+</html>

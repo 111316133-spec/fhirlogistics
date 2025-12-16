@@ -1,0 +1,1114 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>個人健康資料管理</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Microsoft JhengHei', '微軟正黑體', Arial, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+         /* 已讀按鈕美化 */
+.mark-read-btn {
+    background: #27ae60; /* 綠色表示已讀 */
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-left: 10px;
+}
+
+.mark-read-btn:hover {
+    background: #219653;
+    transform: translateY(-2px);
+    box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+}
+
+.mark-read-btn:active {
+    transform: translateY(0);
+    box-shadow: none;
+}
+
+/* 讓通知 item 與按鈕在同一行排列 */
+.communication-item .comm-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.communication-item .comm-header .mark-read-btn {
+    margin-left: 0;
+}
+
+        .header {
+            background: #2c3e50;
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .user-info {
+            background: #34495e;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: white;
+        }
+
+        .user-actions {
+            display: flex;
+            gap: 15px;
+        }
+
+        .action-btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 14px;
+            transition: background 0.3s ease;
+        }
+
+        .action-btn:hover {
+            background: #2980b9;
+        }
+
+        .content-section {
+            padding: 30px;
+        }
+
+        .section-title {
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+            margin-bottom: 25px;
+            font-size: 20px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .info-group {
+            margin-bottom: 20px;
+        }
+
+        .info-label {
+            font-weight: 600;
+            color: #34495e;
+            margin-bottom: 5px;
+        }
+
+        .info-value {
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            border-left: 4px solid #3498db;
+        }
+
+        .empty-value {
+            color: #7f8c8d;
+            font-style: italic;
+        }
+
+        .form-section {
+            padding: 30px;
+            display: none;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .form-row .form-group {
+            flex: 1;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #34495e;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #bdc3c7;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 20px;
+            margin-top: 5px;
+        }
+
+        .radio-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .radio-option input {
+            width: auto;
+        }
+
+        .required::after {
+            content: " *";
+            color: #e74c3c;
+        }
+
+        .btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .btn:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .btn-secondary {
+            background: #95a5a6;
+        }
+
+        .btn-secondary:hover {
+            background: #7f8c8d;
+        }
+
+        .btn-success {
+            background: #27ae60;
+        }
+
+        .btn-success:hover {
+            background: #219653;
+        }
+
+        .btn-warning {
+            background: #f39c12;
+        }
+
+        .btn-warning:hover {
+            background: #e67e22;
+        }
+
+        .btn-info {
+            background: #17a2b8;
+        }
+
+        .btn-info:hover {
+            background: #138496;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        .action-buttons .btn {
+            width: auto;
+            flex: 1;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .info-text {
+            font-size: 14px;
+            color: #7f8c8d;
+            margin-top: 5px;
+        }
+
+        /* 通知記錄樣式 */
+        .communication-item {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .communication-item:hover {
+            background: #e3f2fd;
+            border-color: #3498db;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .comm-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .comm-category {
+            background: #3498db;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .comm-date {
+            color: #6c757d;
+            font-size: 12px;
+        }
+
+        .comm-content {
+            color: #2c3e50;
+            line-height: 1.5;
+            margin-bottom: 8px;
+        }
+
+        .comm-sender {
+            color: #7f8c8d;
+            font-size: 12px;
+            text-align: right;
+        }
+
+        .comm-status-active {
+            border-left: 4px solid #27ae60;
+        }
+
+        .comm-status-completed {
+            border-left: 4px solid #3498db;
+        }
+
+        .comm-status-other {
+            border-left: 4px solid #95a5a6;
+        }
+
+        .refresh-btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-bottom: 15px;
+            transition: background 0.3s ease;
+        }
+
+        .refresh-btn:hover {
+            background: #2980b9;
+        }
+
+        .comm-priority-urgent {
+            background: #fff3cd;
+            border-color: #ffeaa7;
+        }
+
+        .comm-priority-urgent .comm-category {
+            background: #e74c3c;
+        }
+        
+        /* 模態框樣式 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #bdc3c7;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+        
+        /* 響應式設計 */
+        @media (max-width: 768px) {
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .form-row {
+                flex-direction: column;
+                gap: 0;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+            
+            .user-info {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+            
+            .user-actions {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>👤 個人資料管理</h1>
+            <p>管理您的個人基本資料</p>
+        </div>
+
+        <div class="user-info">
+            <div class="user-actions">
+                <button class="action-btn" onclick="switchToViewMode()">📋 檢視資料</button>
+                <button class="action-btn" onclick="switchToEditMode()">✏️ 編輯資料</button>
+            </div>
+        </div>
+           
+        <!-- 檢視模式 -->
+        <div class="content-section" id="viewMode">
+            <div id="alertMessage" class="alert"></div>
+
+            <h2 class="section-title">📋 個人資料總覽</h2>
+            
+            <div class="info-grid">
+                <!-- 帳戶資料 -->
+                <div>
+                    <h3 class="section-title">👤 帳戶資料 (來自 Person)</h3>
+                    <div class="info-group">
+                        <div class="info-label">姓名</div>
+                        <div class="info-value" id="view-name">載入中...</div>
+                    </div>
+                    <div class="info-group">
+                        <div class="info-label">電子郵件</div>
+                        <div class="info-value" id="view-email">載入中...</div>
+                    </div>
+                    <div class="info-group">
+                        <div class="info-label">使用者 ID</div>
+                        <div class="info-value" id="view-personId">載入中...</div>
+                    </div>
+                </div>
+                <!-- 個人健康資料 -->
+                <div>
+                    <h3 class="section-title">📝 個人健康資料</h3>
+                    <div class="info-group">
+                        <div class="info-label">出生日期</div>
+                        <div class="info-value empty-value" id="view-birthDate">尚未填寫</div>
+                    </div>
+                    <div class="info-group">
+                        <div class="info-label">性別</div>
+                        <div class="info-value empty-value" id="view-gender">尚未填寫</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-grid">
+                <!-- 聯絡資訊 -->
+              <div>
+                  <h3 class="section-title">📞 聯絡資訊</h3>
+                   <div class="info-group">
+                      <div class="info-label">手機號碼</div>
+                       <div class="info-value empty-value" id="view-phone">尚未填寫</div>
+                  </div>
+                   <div class="info-group">
+                     <div class="info-label">家中地址</div>
+                     <div class="info-value empty-value" id="view-address">尚未填寫</div>
+                  </div>
+                 <div class="info-group">
+                  <div class="info-label">社區小商店地址</div>
+                  <div class="info-value empty-value" id="view-communityAddress">尚未填寫</div>
+                </div>
+           </div>
+                
+                <!-- 通知記錄 -->
+                <div>
+                    <h3 class="section-title">📢 最新通知記錄</h3>
+                    <button class="refresh-btn" onclick="refreshCommunications()">🔄 重新整理通知</button>
+                    <div id="communications-container">
+                        <div class="info-value empty-value" id="no-communications">載入中...</div>
+                        <div id="communications-list" style="display: none;">
+                            <!-- 通知列表將在這裡動態生成 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 功能按鈕 -->
+            <div class="action-buttons">
+                <button class="btn btn-warning" onclick="goBack()">⬅️ 返回首頁</button>
+                <button class="btn btn-success" onclick="applyMedicineDelivery()">申請配送藥品到家</button>
+                <button class="btn btn-info" onclick="showOrganizationLink()">🏥 連結醫療機構</button>
+            </div>
+        </div>
+
+        <!-- 編輯模式 -->
+        <div class="form-section" id="editMode">
+            <div id="editAlertMessage" class="alert"></div>
+
+            <form id="patientForm">
+                <!-- 基本資料 -->
+                <h2 class="section-title">📝 基本資料</h2>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="name" class="required">中文姓名</label>
+                        <input type="text" id="name" name="name" placeholder="請輸入您的真實姓名" required>
+                    </div>
+            
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="birthDate" class="required">出生日期</label>
+                        <input type="date" id="birthDate" name="birthDate" required max="">
+                    </div>
+                    <div class="form-group">
+                        <label class="required">性別</label>
+                        <div class="radio-group">
+                            <label class="radio-option">
+                                <input type="radio" name="gender" value="male" required> 男性
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="gender" value="female"> 女性
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="gender" value="other"> 其他
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 聯絡資訊 -->
+                <h2 class="section-title">📞 聯絡資訊</h2>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="phone" class="required">手機號碼</label>
+                        <input type="tel" id="phone" name="phone" placeholder="0912-345-678" required>
+                    </div>
+                </div>
+
+                <!-- 地址 -->
+                <div class="form-group">
+                       <label for="address" class="required">家中地址</label>
+                      <input type="text" id="address" name="address" placeholder="請輸入完整地址" required>
+                </div>
+
+                 <div class="form-group">
+                <label for="communityAddress">社區小商店地址</label>
+                <select id="communityAddress">
+                    <option value="org.id">請選擇社區小商店</option>
+               </select>
+                 </div>
+                <!-- 按鈕 -->
+                <button type="submit" class="btn">💾 儲存個人資料</button>
+                <button type="button" class="btn btn-secondary" onclick="switchToViewMode()">返回檢視模式</button>
+                
+                <!-- 功能按鈕 -->
+                <div class="action-buttons">
+                    <button type="button" class="btn btn-warning" onclick="goBack()">⬅️ 返回首頁</button>
+                    <button type="button" class="btn btn-success" onclick="applyMedicineDelivery()">申請配送藥品到家</button>
+                    <button type="button" class="btn btn-info" onclick="showOrganizationLink()">🏥 連結醫療機構</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 組織連結模態框 -->
+    <div id="organizationModal" class="modal">
+        <div class="modal-content">
+            <h2>🏥 連結醫療機構</h2>
+            
+            <div id="syncStatus" class="alert" style="display: none;"></div>
+            
+            <div class="form-group">
+                <label>選擇醫療機構</label>
+                <select id="organizationSelect" class="form-control" style="width: 100%; padding: 10px; margin-bottom: 15px;">
+                    <option value="">載入中...</option>
+                </select>
+            </div>
+            
+          
+            
+            <div class="action-buttons">
+                <button class="btn btn-success" onclick="syncPatientToOrganization()">✅ 確認連結</button>
+                <button class="btn btn-secondary" onclick="hideOrganizationModal()">取消</button>
+            </div>
+        </div>
+    </div>
+
+   <script>
+const FHIR_BASE_URL = "http://203.64.84.204:8080/fhir"; // ← 改成你的 FHIR Server
+let currentPersonId = null;
+let currentPatientId = null;
+let currentPersonEmail = null;
+document.addEventListener("DOMContentLoaded", async () => {
+    const today = new Date().toISOString().split("T")[0];
+    document.getElementById("birthDate").setAttribute("max", today);
+    await loadUserData();
+      await loadCommunityStores();
+    // 綁定表單提交事件
+    const form = document.getElementById("patientForm");
+    form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        await savePatientData();
+    });
+});
+function goBack() {
+    window.location.href="/patient-register.html";
+}
+
+// 1️⃣ 載入 Person 資料
+async function loadUserData() {
+    try {
+        const res = await fetch("/api/person", { credentials: "include" });
+        if (!res.ok) throw new Error("無法取得登入使用者資訊");
+        const user = await res.json();
+        currentPersonId = user.personId;
+
+        const personRes = await fetch(`${FHIR_BASE_URL}/Person/${currentPersonId}`);
+        const person = await personRes.json();
+
+        // 更新前端帳戶資料
+        const displayName = person.name?.[0]?.text ?? "（未填寫姓名）";
+        document.getElementById("view-name").innerText = displayName;
+        document.getElementById("view-email").innerText =
+            person.telecom?.find(t => t.system === "email")?.value ?? "未填寫";
+        document.getElementById("view-personId").innerText = currentPersonId;
+
+        // 檢查 Person.link 是否已有 Patient
+        const link = person.link?.find(l => l.target.reference.startsWith("Patient/"));
+        currentPatientId = link ? link.target.reference.split("/")[1] : null;
+         currentPersonEmail = person.telecom?.find(t => t.system === "email")?.value ?? "";
+
+        // 如果有 Patient，載入 Patient 資料
+        if (currentPatientId) await loadPatientData(currentPatientId);
+
+        // 填入編輯表單初始值
+        document.getElementById("name").value = displayName;
+        if (currentPatientId) {
+            const patientRes = await fetch(`${FHIR_BASE_URL}/Patient/${currentPatientId}`);
+            const patient = await patientRes.json();
+            document.getElementById("birthDate").value = patient.birthDate ?? "";
+            if (patient.gender) document.querySelector(`input[name="gender"][value="${patient.gender}"]`).checked = true;
+            document.getElementById("phone").value = patient.telecom?.find(t => t.system === "phone")?.value ?? "";
+            document.getElementById("address").value = patient.address?.[0]?.text ?? "";
+        }
+       if (currentPatientId) {
+    await refreshCommunications(); // 載入完成 Patient 後刷新通知
+}
+    } catch (err) {
+        console.error("❌ 載入使用者資料失敗：", err);
+    }
+}
+
+// 2️⃣ 載入 Patient 資料到檢視區塊
+async function loadPatientData(patientId) {
+    try {
+        const res = await fetch(`${FHIR_BASE_URL}/Patient/${patientId}`);
+        if (!res.ok) throw new Error("無法取得 Patient 資料");
+        const patient = await res.json();
+
+        // === 基本欄位 ===
+        document.getElementById("view-birthDate").innerText = patient.birthDate ?? "尚未填寫";
+        document.getElementById("view-gender").innerText = patient.gender ?? "尚未填寫";
+        document.getElementById("view-phone").innerText = 
+            patient.telecom?.find(t => t.system === "phone")?.value ?? "尚未填寫";
+
+        document.getElementById("view-address").innerText =
+            patient.address?.find(a => a.use === "home")?.text ?? "尚未填寫";
+
+        // === 取得 Community Store Organization ID ===
+        const communityOrgRef = patient.contact?.[0]?.organization?.reference;  
+        // e.g. "Organization/2199"
+
+        let communityStoreText = "尚未選擇";
+
+        if (communityOrgRef) {
+            const orgId = communityOrgRef.replace("Organization/", "");
+            // 查 Organization
+            const orgRes = await fetch(`${FHIR_BASE_URL}/Organization/${orgId}`);
+            if (orgRes.ok) {
+                const org = await orgRes.json();
+                const name = org.name ?? "(未命名)";
+                const addr = org.address?.[0]?.text ?? "(無地址)";
+                communityStoreText = `${name} — ${addr}`;
+
+                // ⭐ 編輯模式選單 → 自動選中該小商店
+                const select = document.getElementById("communityAddress");
+                select.value = orgId;
+            }
+        }
+
+        // 顯示在 view mode
+        document.getElementById("view-communityAddress").innerText = communityStoreText;
+
+        // === 編輯模式初始值 ===
+        document.getElementById("birthDate").value = patient.birthDate ?? "";
+        if (patient.gender) {
+            document.querySelector(`input[name="gender"][value="${patient.gender}"]`).checked = true;
+        }
+        document.getElementById("phone").value = 
+            patient.telecom?.find(t => t.system === "phone")?.value ?? "";
+
+        document.getElementById("address").value =
+            patient.address?.find(a => a.use === "home")?.text ?? "";
+
+        // ⭐ communityAddress 的值現在用 orgId，不再放地址
+        // （上面已經在 select.value 設好了）
+
+    } catch (err) {
+        console.error("❌ 載入 Patient 資料失敗：", err);
+    }
+}
+
+// 3️⃣ 建立或更新 Patient
+async function savePatientData() {
+    try {
+        const name = document.getElementById("name").value;
+        const birthDate = document.getElementById("birthDate").value;
+        const gender = document.querySelector('input[name="gender"]:checked')?.value;
+        const phone = document.getElementById("phone").value;
+        const homeAddress = document.getElementById("address").value;
+
+        // ⭐ 這裡寫的是 Organization 的 ID
+        const communityOrgId = document.getElementById("communityAddress").value.trim();
+
+        if (!name || !birthDate || !gender || !phone || !homeAddress||!communityOrgId) {
+            alert("請填寫完整資料");
+            return;
+        }
+
+        const patientPayload = {
+            resourceType: "Patient",
+            name: [{ text: name }],
+            birthDate,
+            gender,
+            telecom: [
+                { system: "phone", value: phone }
+            ],
+            address: [
+                { use: "home", text: homeAddress }
+            ],
+            contact: []
+        };
+
+        // ⭐ email（若 Person 有存）
+        if (currentPersonEmail) {
+            patientPayload.telecom.push({
+                system: "email",
+                value: currentPersonEmail
+            });
+        }
+
+        // ⭐ 將組織 ID 放進 contact.organization
+        if (communityOrgId) {
+            patientPayload.contact.push({
+                organization: {
+                    reference: `Organization/${communityOrgId}`
+                }
+            });
+        }
+
+        // ⭐ 決定是新增還是更新
+        let method = "POST", url = `${FHIR_BASE_URL}/Patient`;
+        if (currentPatientId) {
+            method = "PUT";
+            url = `${FHIR_BASE_URL}/Patient/${currentPatientId}`;
+            patientPayload.id = currentPatientId;
+        }
+
+        const res = await fetch(url, {
+            method,
+            headers: { "Content-Type": "application/fhir+json" },
+            body: JSON.stringify(patientPayload)
+        });
+
+        const patient = await res.json();
+
+        if (!res.ok || !patient.id) {
+            console.error("❌ 儲存 Patient 失敗", patient);
+            throw new Error("FHIR Server 儲存失敗");
+        }
+
+        currentPatientId = patient.id;
+
+        await linkPersonToPatient(currentPersonId, currentPatientId);
+        await loadPatientData(currentPatientId);
+
+        switchToViewMode();
+        alert("✅ 個人資料已儲存");
+
+    } catch (err) {
+        console.error("❌ 儲存 Patient 資料失敗：", err);
+        alert("儲存失敗，請稍後再試");
+    }
+}
+
+
+async function loadCommunityStores() {
+    try {
+        // ⭐ 用 type=community-store (type 系統值會依你實際的 code 調整)
+        const url = `${FHIR_BASE_URL}/Organization?type=Community%20Store`;
+        const res = await fetch(url);
+
+        if (!res.ok) throw new Error("無法取得社區小商店");
+
+        const data = await res.json();
+        const stores = data.entry?.map(e => e.resource) ?? [];
+
+        const select = document.getElementById("communityAddress");
+        select.innerHTML = '<option value="">請選擇社區小商店</option>';
+
+        stores.forEach(store => {
+            const name = store.name ?? "未命名商店";
+            const addr = store.address?.[0]?.text ?? "(無地址)";
+            const option = document.createElement("option");
+
+            // ⭐ 這裡改為 ID（正確存法）
+            option.value = store.id;
+
+            // ⭐ 顯示名稱 + 地址（只是顯示，不存）
+            option.textContent = `${name} — ${addr}`;
+
+            select.appendChild(option);
+        });
+
+    } catch (err) {
+        console.error("❌ 無法載入社區小商店：", err);
+    }
+}
+
+
+// 5️⃣ 將 Person.link 指向 Patient
+async function linkPersonToPatient(personId, patientId) {
+    try {
+        // 1️⃣ 取得現有 Person
+        const resGet = await fetch(`${FHIR_BASE_URL}/Person/${personId}`);
+        if (!resGet.ok) throw new Error("無法取得 Person");
+        const person = await resGet.json();
+
+        // 2️⃣ 檢查是否已經有這個 Patient
+        const exists = person.link?.some(l => l.target.reference === `Patient/${patientId}`);
+        if (!exists) {
+            person.link = person.link || [];
+            person.link.push({ target: { reference: `Patient/${patientId}` }, assurance: "level1" });
+        }
+
+        // 3️⃣ PUT 整個 Person
+        const resPut = await fetch(`${FHIR_BASE_URL}/Person/${personId}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/fhir+json" },
+            body: JSON.stringify(person)
+        });
+
+        if (!resPut.ok) throw new Error("無法更新 Person.link");
+        console.log("✅ Person.link 已更新");
+    } catch (err) {
+        console.error("❌ Person.link 更新失敗：", err);
+    }
+}
+function hideOrganizationModal() {
+    const modal = document.getElementById("organizationModal");
+    if (modal) {
+        modal.style.display = "none"; // 隱藏 modal
+    }
+}
+
+async function loadHospitals() {
+    try {
+        const res = await fetch("http://203.64.84.209:8080/fhir/Organization?type=http://hl7.org/fhir/organization-type|hospital");
+        if (!res.ok) throw new Error("無法取得醫院資料");
+
+        const data = await res.json();
+
+        // FHIR search 回傳是 Bundle
+        const hospitals = data.entry?.map(e => e.resource) ?? [];
+
+        console.log("取得的醫院列表：", hospitals);
+
+        // 例如可以把 id 與 name 放入下拉選單
+        const select = document.getElementById("organizationSelect");
+        select.innerHTML = '<option value="">請選擇醫療機構</option>';
+        hospitals.forEach(org => {
+            const option = document.createElement("option");
+            option.value = org.id;
+            option.textContent = org.name ?? "未命名醫院";
+            select.appendChild(option);
+        });
+
+    } catch (err) {
+        console.error("❌ 載入醫院失敗：", err);
+    }
+}
+async function refreshCommunications() {
+    const container = document.getElementById("communications-container");
+    const listEl = document.getElementById("communications-list");
+    const noCommEl = document.getElementById("no-communications");
+
+    try {
+        // 取得所有 Communication
+        const res = await fetch(`${FHIR_BASE_URL}/Communication`);
+        if (!res.ok) throw new Error("無法取得通知資料");
+
+        const data = await res.json();
+        let communications = data.entry?.map(e => e.resource) ?? [];
+
+        // 用 payload 內 email 過濾
+        communications = communications.filter(comm => {
+            const payloadText = comm.payload?.map(p => p.contentString).join(" ") ?? "";
+            return payloadText.includes(currentPersonEmail); // currentPersonEmail = 病人的 email
+        });
+
+        // 清空舊列表
+        listEl.innerHTML = "";
+
+        if (communications.length === 0) {
+            noCommEl.style.display = "block";
+            noCommEl.innerText = "目前沒有通知";
+            listEl.style.display = "none";
+            return;
+        }
+
+        noCommEl.style.display = "none";
+        listEl.style.display = "block";
+
+        communications.forEach(comm => {
+            const commDiv = document.createElement("div");
+            commDiv.classList.add("info-group");
+
+            const status = comm.status ?? "unknown";
+            const sent = comm.sent ? new Date(comm.sent).toLocaleString() : "未提供時間";
+            const contentText = comm.payload?.map(p => p.contentString ?? "").join("\n") ?? "無內容";
+
+            commDiv.innerHTML = `
+                <div class="info-label">📌 狀態: ${status}</div>
+                <div class="info-label">⏰ 發送時間: ${sent}</div>
+                <div class="info-value">${contentText}</div>
+            `;
+
+            // ⭐ 新增「已讀」按鈕
+            const readBtn = document.createElement("button");
+            readBtn.textContent = "✅ 已讀";
+            readBtn.classList.add("mark-read-btn");
+            readBtn.addEventListener("click", async () => {
+                try {
+                    const delRes = await fetch(`${FHIR_BASE_URL}/Communication/${comm.id}`, {
+                        method: "DELETE"
+                    });
+                    if (!delRes.ok) throw new Error("刪除失敗");
+
+                    // 從畫面移除
+                    commDiv.remove();
+
+                    // 如果列表已空，顯示提示
+                    if (listEl.children.length === 0) {
+                        noCommEl.style.display = "block";
+                        noCommEl.innerText = "目前沒有通知";
+                        listEl.style.display = "none";
+                    }
+                } catch (err) {
+                    console.error("❌ 刪除通知失敗：", err);
+                    alert("刪除通知失敗，請稍後再試");
+                }
+            });
+
+            commDiv.appendChild(readBtn);
+            listEl.appendChild(commDiv);
+        });
+
+    } catch (err) {
+        console.error("❌ 取得通知失敗：", err);
+        noCommEl.style.display = "block";
+        noCommEl.innerText = "取得通知失敗，請稍後再試";
+        listEl.style.display = "none";
+    }
+}
+
+
+async function syncPatientToOrganization() {
+    const patientId = currentPatientId; // 你現有的 Patient ID
+    const orgId = document.getElementById("organizationSelect").value;
+
+    if (!patientId) {
+        alert("❌ 尚未建立 Patient");
+        return;
+    }
+    if (!orgId) {
+        alert("❌ 請先選擇醫院");
+        return;
+    }
+
+    try {
+        // 1️⃣ 先從本地 FHIR Server 取得 Patient 資料
+        const resPatient = await fetch(`${FHIR_BASE_URL}/Patient/${patientId}`);
+        if (!resPatient.ok) throw new Error("無法取得 Patient 資料");
+        const patient = await resPatient.json();
+
+        // 2️⃣ 設定 managingOrganization
+        patient.managingOrganization = {
+            reference: `Organization/${orgId}`
+        };
+
+        // 3️⃣ 移除不必要的欄位（id, meta, text 等，如果想在新 server 自動產生 id）
+        delete patient.id;
+        delete patient.meta;
+
+        // 4️⃣ POST 到另一個 FHIR Server
+        const targetServer = "http://203.64.84.209:8080/fhir";
+        const res = await fetch(`${targetServer}/Patient`, {
+            method: "POST",
+            headers: { "Content-Type": "application/fhir+json" },
+            body: JSON.stringify(patient)
+        });
+
+        if (!res.ok) throw new Error("同步 Patient 到醫院失敗");
+
+        const newPatient = await res.json();
+        console.log("✅ Patient 成功同步到醫院:", newPatient);
+
+        document.getElementById("syncStatus").style.display = "block";
+        document.getElementById("syncStatus").innerText = `✅ Patient 已同步至 ${orgId}，新 ID: ${newPatient.id}`;
+
+        // 選擇完可以關閉 modal
+        hideOrganizationModal();
+
+    } catch (err) {
+        console.error("❌ 同步 Patient 失敗：", err);
+        document.getElementById("syncStatus").style.display = "block";
+        document.getElementById("syncStatus").innerText = `❌ 同步失敗：${err.message}`;
+    }
+}
+
+
+
+function showOrganizationLink() {
+    document.getElementById("organizationModal").style.display = "block";
+    loadHospitals(); // 立即載入醫院選單
+}
+// 切換檢視/編輯模式
+function switchToViewMode() {
+    document.getElementById("editMode").style.display = "none";
+    document.getElementById("viewMode").style.display = "block";
+}
+function applyMedicineDelivery() {
+    window.location.href = "medicine-delivery.html";
+}
+
+function switchToEditMode() {
+    document.getElementById("editMode").style.display = "block";
+    document.getElementById("viewMode").style.display = "none";
+}
+
+</script>
+
+</body>
+</html>

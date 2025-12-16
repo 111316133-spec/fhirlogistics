@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title data-i18n="forgot.pageTitle">忘記密碼</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    /* --- 全局 & 背景 --- */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      height: 100%;
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: #fff;
+      position: relative;
+    }
+
+    /* --- 語言切換下拉 --- */
+    .lang-switcher {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      border: 1px solid #fff;
+      background: rgba(255,255,255,0.15);
+      color: #fff;
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      backdrop-filter: blur(5px);
+      z-index: 1000;
+    }
+    .lang-switcher option { background: #333; }
+    .lang-switcher:hover { background: rgba(255,255,255,0.25); }
+    
+    /* --- Nav 按鈕化 --- */
+    nav {
+      text-align: center;
+      padding: 1rem 0;
+    }
+    nav a {
+      display: inline-block;
+      margin: 0 0.5rem;
+      padding: 0.5rem 1rem;
+      border: 1px solid rgba(255,255,255,0.6);
+      border-radius: 20px;
+      background: rgba(255,255,255,0.15);
+      color: #fff;
+      text-decoration: none;
+      font-size: 0.9rem;
+      transition: background 0.2s, color 0.2s;
+      backdrop-filter: blur(5px);
+    }
+    nav a:hover {
+      background: rgba(255,255,255,0.3);
+      color: #000;
+      border-color: #fff;
+    }
+    hr {
+      border: 0;
+      border-top: 1px solid rgba(255,255,255,0.3);
+      margin: 0 2rem;
+    }
+
+    /* --- 玻璃卡片 --- */
+    .card {
+      max-width: 400px;
+      margin: 3vh auto;
+      padding: 2rem;
+      background: rgba(255,255,255,0.15);
+      backdrop-filter: blur(10px);
+      border-radius: 16px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    }
+    .card h2 {
+      text-align: center;
+      margin-bottom: 1.5rem;
+      font-size: 1.6rem;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+
+    /* --- 表單樣式 --- */
+    .card label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-size: 0.95rem;
+      font-weight: 500;
+    }
+    .card input[type="email"] {
+      width: 100%;
+      padding: 0.75rem;
+      margin-bottom: 1rem;
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 8px;
+      background: rgba(255,255,255,0.25);
+      color: #fff;
+      font-size: 0.95rem;
+      outline: none;
+      transition: background 0.2s;
+    }
+    .card input:focus { background: rgba(255,255,255,0.35); }
+
+    /* --- 按鈕 --- */
+    .card button {
+      width: 100%;
+      padding: 0.75rem;
+      border: none;
+      border-radius: 8px;
+      background: #ff8a65;
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.2s;
+    }
+    .card button:hover { background: #ff7043; transform: translateY(-2px); }
+
+    /* --- 【新增】訊息提示區塊樣式 --- */
+    .message {
+        display: none; 
+        margin-top: 1.5rem; 
+        padding: 0.75rem;
+        border-radius: 6px; 
+        color: #fff; 
+        text-align: center;
+    }
+    .message.success { background: rgba(40, 167, 69, 0.5); }
+    .message.error { background: rgba(220, 53, 69, 0.5); }
+  </style>
+</head>
+<body id="forgot-password-page">
+
+  <select id="langSwitcher" class="lang-switcher">
+    <option value="zh">中文</option>
+    <option value="en">English</option>
+    <option value="vi">Tiếng Việt</option>
+  </select>
+
+  <nav>
+    <a href="/login.html" data-i18n="nav.login">登入</a>
+    <a href="/register.html" data-i18n="nav.register">註冊</a>
+    <a href="/forgot.html" data-i18n="nav.forgot">忘記密碼</a>
+  </nav>
+  <hr>
+
+  <div class="card">
+    <h2 data-i18n="forgot.title">忘記密碼</h2>
+    <form id="forgotForm">
+      <label data-i18n="forgot.prompt">請輸入您的 Email：</label>
+      <input type="email" id="email" placeholder="you@example.com" required>
+      <button type="submit" data-i18n="forgot.submit">寄送重設密碼連結</button>
+    </form>
+    <!-- 【修正】將 pre 標籤替換為 message div -->
+    <div id="message" class="message"></div>
+  </div>
+
+<script src="script.js"></script>
+</body>
+</html>
+
